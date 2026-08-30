@@ -18,6 +18,11 @@ uv run dependapilot serve
 
 The app starts on `http://127.0.0.1:8000` by default; `GET /healthz` returns `{"status": "ok"}`.
 
+### Fleet configuration
+
+[`repos.yml`](repos.yml) is the committed source of truth for which repos DependaPilot
+manages and their policy overrides; see `src/dependapilot/config.py` for the schema.
+
 ### Run checks
 
 ```sh
