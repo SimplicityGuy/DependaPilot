@@ -41,6 +41,11 @@
       .action-outcome { margin: 0 0 0.3rem 0; font-size: 0.82rem; }
       .action-ok { color: #14602c; }
       .action-fail { color: #9a1f1f; }
+      .action-skip { color: #8a6b00; }
+      .bulk-toolbar { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.5rem; font-size: 0.85rem; }
+      .bulk-caution { color: #666; }
+      #bulk-panel:not(:empty) { border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; background: #fafafa; }
+      .bulk-eligible, .bulk-skipped ul { margin: 0.4rem 0; padding-left: 1.2rem; font-size: 0.85rem; }
     </style>
   </head>
   <body>
@@ -57,7 +62,29 @@
         Refresh
       </button>
       <span id="fleet-loading" class="htmx-indicator">Refreshing…</span>
+
+      <span class="bulk-toolbar" data-repo="">
+        <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
+        <button
+          hx-post="/fleet/bulk/preview"
+          hx-vals='js:{"action": "approve", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-target="#bulk-panel"
+          hx-swap="outerHTML"
+        >
+          Approve all eligible (fleet)
+        </button>
+        <button
+          hx-post="/fleet/bulk/preview"
+          hx-vals='js:{"action": "merge", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-target="#bulk-panel"
+          hx-swap="outerHTML"
+        >
+          Merge all eligible (fleet)
+        </button>
+      </span>
     </div>
+
+    <div id="bulk-panel"></div>
 
     <div id="fleet" hx-get="/fleet" hx-trigger="load" hx-swap="outerHTML">
       <p class="fleet-empty">Loading fleet…</p>

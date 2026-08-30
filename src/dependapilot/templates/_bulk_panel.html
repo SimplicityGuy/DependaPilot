@@ -1,0 +1,44 @@
+<div id="bulk-panel">
+  {% if unconfigured %}
+  <p class="fleet-error">Fleet service is not configured.</p>
+  {% else %}
+  <div class="bulk-preview">
+    <h3>{{ preview.action|capitalize }} all eligible &mdash; {{ repo if repo else "fleet-wide" }}</h3>
+    <p>
+      {{ preview.eligible|length }} PR{{ "" if preview.eligible|length == 1 else "s" }} eligible
+      ({{ preview.min_bucket.value }}+ and CI green), {{ preview.skipped|length }} skipped.
+    </p>
+    {% if preview.eligible %}
+    <ul class="bulk-eligible">
+      {% for row in preview.eligible %}
+      <li>{{ row.pr.repo }}#{{ row.pr.number }} &mdash; {{ row.pr.title }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if preview.skipped %}
+    <details class="bulk-skipped">
+      <summary>{{ preview.skipped|length }} skipped</summary>
+      <ul>
+        {% for decision in preview.skipped %}
+        <li>{{ decision.repo }}#{{ decision.number }}: {{ decision.reason }}</li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% if preview.eligible %}
+    <form
+      hx-post="/fleet/bulk/execute"
+      hx-target="#bulk-panel"
+      hx-swap="outerHTML"
+      hx-confirm="Proceed with {{ preview.action }} on {{ preview.eligible|length }} PR(s)?"
+    >
+      <input type="hidden" name="action" value="{{ preview.action }}" />
+      {% if repo %}<input type="hidden" name="repo" value="{{ repo }}" />{% endif %}
+      <input type="hidden" name="min_bucket" value="{{ preview.min_bucket.value }}" />
+      <button type="submit">Confirm {{ preview.action }}</button>
+    </form>
+    {% endif %}
+    <button type="button" onclick="this.closest('#bulk-panel').replaceChildren()">Cancel</button>
+  </div>
+  {% endif %}
+</div>

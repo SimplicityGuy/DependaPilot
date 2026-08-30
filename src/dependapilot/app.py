@@ -3,14 +3,16 @@
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from dependapilot.actions import ActionOutcome, ActionResult, ActionsService
+from dependapilot.bulk import execute_bulk, preview_bulk
 from dependapilot.fleet import FleetService
+from dependapilot.scoring import SafetyBucket
 
 BASE_DIR = Path(__file__).parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -112,6 +114,53 @@ def create_app(
         else:
             result = await service.rebase(f"{owner}/{repo}", number)
         return _render_action_result(request, owner, repo, number, sha, result)
+
+    @app.post("/fleet/bulk/preview", response_class=HTMLResponse)
+    async def bulk_preview(
+        request: Request,
+        action: Annotated[str, Form()],
+        repo: Annotated[str | None, Form()] = None,
+        min_bucket: Annotated[str, Form()] = SafetyBucket.SAFE.value,
+    ) -> HTMLResponse:
+        fleet_service: FleetService | None = request.app.state.fleet_service
+        if fleet_service is None:
+            return templates.TemplateResponse(request, "_bulk_panel.html", {"unconfigured": True})
+        try:
+            preview = await preview_bulk(
+                fleet_service, action=action, repo=repo, min_bucket=SafetyBucket(min_bucket)
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return templates.TemplateResponse(
+            request,
+            "_bulk_panel.html",
+            {"preview": preview, "repo": repo, "min_bucket": min_bucket, "unconfigured": False},
+        )
+
+    @app.post("/fleet/bulk/execute", response_class=HTMLResponse)
+    async def bulk_execute(
+        request: Request,
+        action: Annotated[str, Form()],
+        repo: Annotated[str | None, Form()] = None,
+        min_bucket: Annotated[str, Form()] = SafetyBucket.SAFE.value,
+    ) -> HTMLResponse:
+        fleet_service: FleetService | None = request.app.state.fleet_service
+        actions_service: ActionsService | None = request.app.state.actions_service
+        if fleet_service is None or actions_service is None:
+            return templates.TemplateResponse(request, "_bulk_results.html", {"unconfigured": True})
+        try:
+            outcome = await execute_bulk(
+                fleet_service,
+                actions_service,
+                action=action,
+                repo=repo,
+                min_bucket=SafetyBucket(min_bucket),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return templates.TemplateResponse(
+            request, "_bulk_results.html", {"outcome": outcome, "unconfigured": False}
+        )
 
     return app
 
