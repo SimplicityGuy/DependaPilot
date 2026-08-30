@@ -17,6 +17,7 @@ from dependapilot.audit.engine import (
 )
 from dependapilot.audit.findings import Check, Finding, Severity
 from dependapilot.audit.schema import SCHEMA_URL, SchemaViolation, validate_config
+from dependapilot.audit.suggest import render_config, suggest_config
 
 __all__ = [
     "CONFIG_PATH",
@@ -35,5 +36,7 @@ __all__ = [
     "detect_repo",
     "evaluate_config",
     "fetch_config",
+    "render_config",
+    "suggest_config",
     "validate_config",
 ]
