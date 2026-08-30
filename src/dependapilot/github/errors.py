@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from typing import Any
+
 
 class GitHubError(Exception):
     """Base class for all errors raised by the GitHub client."""
@@ -49,3 +52,21 @@ class GitHubAPIError(GitHubError):
         super().__init__(message)
         self.status_code = status_code
         self.body = body
+
+
+def github_error_message(exc: GitHubAPIError) -> str:
+    """GitHub's own `"message"` field from an error body, falling back to `str(exc)`.
+
+    GitHub's JSON error bodies (405 branch-protection rejections, 422 validation
+    failures, etc.) carry a human-readable `message` -- surface that verbatim to a
+    dashboard rather than a generic "request failed" string.
+    """
+    try:
+        payload: Any = json.loads(exc.body)
+    except (json.JSONDecodeError, TypeError):
+        return str(exc)
+    if isinstance(payload, dict):
+        message = payload.get("message")
+        if isinstance(message, str):
+            return message
+    return str(exc)

@@ -125,6 +125,17 @@ def _render_pr_body(findings: Sequence[Finding]) -> str:
     return "\n".join(lines)
 
 
+async def find_open_fix_pr(client: GitHubClient, repo: str) -> str | None:
+    """The URL of the open fix PR for `repo`, if DependaPilot already has one open.
+
+    Read-only counterpart to `open_fix_pr`'s own idempotency check -- lets a caller
+    (the audit view) show the existing fix PR without creating or updating anything.
+    """
+    owner, _, name = repo.partition("/")
+    existing = await _find_open_fix_pr(client, owner, name)
+    return str(existing["html_url"]) if existing is not None else None
+
+
 async def open_fix_pr(
     client: GitHubClient,
     repo: str,
