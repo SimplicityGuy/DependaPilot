@@ -1,0 +1,11 @@
+<div id="audit-list">
+  {% if unconfigured %}
+  <p class="fleet-error">Audit service is not configured.</p>
+  {% elif not views %}
+  <p class="fleet-empty">No repositories have auditing enabled.</p>
+  {% else %}
+  {% for view in views %}
+  {% include "_audit_repo.html" %}
+  {% endfor %}
+  {% endif %}
+</div>

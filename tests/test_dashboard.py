@@ -8,6 +8,8 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from dependapilot.app import create_app
+from dependapilot.audit.findings import Check, Finding, Severity
+from dependapilot.audit_service import RepoAuditView
 from dependapilot.ci import CIStatus, CIVerdict
 from dependapilot.discovery import PRRecord
 from dependapilot.fleet import DependencySummary, PRRow, RepoView
@@ -203,3 +205,115 @@ class TestFleetPartial:
 
         assert response.status_code == 200
         assert "not configured" in response.text
+
+
+class FakeAuditService:
+    """Stands in for `AuditService`: only `.get_audit_view()` is used by `/fleet`."""
+
+    def __init__(self, views: tuple[RepoAuditView, ...]) -> None:
+        self.views = views
+
+    async def get_audit_view(self, *, force_refresh: bool = False) -> tuple[RepoAuditView, ...]:
+        return self.views
+
+
+class TestFleetAuditBadge:
+    def test_repo_without_audit_enabled_shows_off(self) -> None:
+        views = (RepoView(repo="acme/widgets", audit_enabled=False, rows=()),)
+        client = TestClient(
+            create_app(FakeFleetService(views), audit_service=FakeAuditService(()))  # type: ignore[arg-type]
+        )
+
+        response = client.get("/fleet")
+
+        assert "badge-audit-off" in response.text
+
+    def test_compliant_audited_repo_shows_ok(self) -> None:
+        views = (RepoView(repo="acme/widgets", audit_enabled=True, rows=()),)
+        audit_views = (RepoAuditView(repo="acme/widgets", findings=()),)
+        client = TestClient(
+            create_app(
+                FakeFleetService(views),  # type: ignore[arg-type]
+                audit_service=FakeAuditService(audit_views),  # type: ignore[arg-type]
+            )
+        )
+
+        response = client.get("/fleet")
+
+        assert "badge-audit-ok" in response.text
+        assert "Audit: ok" in response.text
+
+    def test_repo_with_findings_shows_the_count(self) -> None:
+        views = (RepoView(repo="acme/widgets", audit_enabled=True, rows=()),)
+        audit_views = (
+            RepoAuditView(
+                repo="acme/widgets",
+                findings=(
+                    Finding(
+                        repo="acme/widgets",
+                        check=Check.MISSING_CONFIG,
+                        severity=Severity.HIGH,
+                        message="no config",
+                    ),
+                ),
+            ),
+        )
+        client = TestClient(
+            create_app(
+                FakeFleetService(views),  # type: ignore[arg-type]
+                audit_service=FakeAuditService(audit_views),  # type: ignore[arg-type]
+            )
+        )
+
+        response = client.get("/fleet")
+
+        assert "badge-audit-findings" in response.text
+        assert "Audit: 1 finding" in response.text
+
+    def test_degraded_scope_repo_shows_unknown(self) -> None:
+        views = (RepoView(repo="acme/widgets", audit_enabled=True, rows=()),)
+        audit_views = (
+            RepoAuditView(
+                repo="acme/widgets",
+                findings=(
+                    Finding(
+                        repo="acme/widgets",
+                        check=Check.ALERTS_UNKNOWN,
+                        severity=Severity.INFO,
+                        message="unknown",
+                    ),
+                ),
+            ),
+        )
+        client = TestClient(
+            create_app(
+                FakeFleetService(views),  # type: ignore[arg-type]
+                audit_service=FakeAuditService(audit_views),  # type: ignore[arg-type]
+            )
+        )
+
+        response = client.get("/fleet")
+
+        assert "badge-audit-unknown" in response.text
+
+    def test_errored_audit_shows_error_badge(self) -> None:
+        views = (RepoView(repo="acme/widgets", audit_enabled=True, rows=()),)
+        audit_views = (RepoAuditView(repo="acme/widgets", error="boom"),)
+        client = TestClient(
+            create_app(
+                FakeFleetService(views),  # type: ignore[arg-type]
+                audit_service=FakeAuditService(audit_views),  # type: ignore[arg-type]
+            )
+        )
+
+        response = client.get("/fleet")
+
+        assert "badge-audit-error" in response.text
+
+    def test_audit_enabled_repo_without_a_configured_audit_service_shows_off(self) -> None:
+        views = (RepoView(repo="acme/widgets", audit_enabled=True, rows=()),)
+        client = TestClient(create_app(FakeFleetService(views)))  # type: ignore[arg-type]
+
+        response = client.get("/fleet")
+
+        assert "badge-audit-off" in response.text

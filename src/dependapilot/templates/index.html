@@ -19,7 +19,12 @@
       table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
       th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
       .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
-      .badge-audit-placeholder { background: #eee; color: #666; }
+      .badge-audit-ok { background: #d7f3df; color: #14602c; }
+      .badge-audit-findings { background: #fde3e3; color: #9a1f1f; }
+      .badge-audit-unknown { background: #fff3cd; color: #8a6b00; }
+      .badge-audit-off { background: #eee; color: #666; }
+      .badge-audit-error { background: #fde3e3; color: #9a1f1f; }
+      a.badge { text-decoration: none; }
       .badge-semver-patch { background: #d7f3df; color: #14602c; }
       .badge-semver-minor { background: #e6f0ff; color: #1a4fa0; }
       .badge-semver-major, .badge-semver-unknown { background: #fde3e3; color: #9a1f1f; }
@@ -51,6 +56,7 @@
   <body>
     <h1>DependaPilot</h1>
     <p class="subtitle">Automated dependency update orchestration.</p>
+    <p><a href="/audit">Audit view &rarr;</a></p>
 
     <div id="fleet-toolbar">
       <button
