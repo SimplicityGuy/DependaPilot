@@ -74,3 +74,8 @@
 sync.remote: "git+ssh://git@github.com/SimplicityGuy/DependaPilot.git"
 dolt:
     shared-server: true
+export:
+    auto: true
+    git-add: false
+backup:
+    enabled: true
