@@ -66,6 +66,8 @@ class RepoView:
 
     repo: str
     audit_enabled: bool = False
+    actions_enabled: bool = False
+    """Mirrors `RepoConfig.actions`: whether this repo opted into dashboard actions."""
     rows: tuple[PRRow, ...] = ()
     error: str | None = None
     """Set instead of `rows` when this repo's PR list couldn't be hydrated."""
@@ -131,12 +133,14 @@ class FleetService:
         *,
         weights: ScoreWeights = DEFAULT_WEIGHTS,
         audit_enabled_repos: frozenset[str] = frozenset(),
+        actions_enabled_repos: frozenset[str] = frozenset(),
     ) -> None:
         self._client = client
         self._discovery = discovery
         self._ci_service = ci_service
         self._weights = weights
         self._audit_enabled_repos = audit_enabled_repos
+        self._actions_enabled_repos = actions_enabled_repos
 
     async def get_fleet_view(self, *, force_refresh: bool = False) -> tuple[RepoView, ...]:
         """Every managed repo's dashboard section, built concurrently.
@@ -162,7 +166,10 @@ class FleetService:
     async def _build_repo_view(self, repo: str, prs: list[PRRecord]) -> RepoView:
         rows = await asyncio.gather(*(self._build_row(repo, pr) for pr in prs))
         return RepoView(
-            repo=repo, audit_enabled=repo in self._audit_enabled_repos, rows=tuple(rows)
+            repo=repo,
+            audit_enabled=repo in self._audit_enabled_repos,
+            actions_enabled=repo in self._actions_enabled_repos,
+            rows=tuple(rows),
         )
 
     async def _build_row(self, repo: str, pr: PRRecord) -> PRRow:

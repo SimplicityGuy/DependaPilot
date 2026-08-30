@@ -282,6 +282,21 @@ class TestGetFleetView:
         by_repo = {view.repo: view.audit_enabled for view in views}
         assert by_repo == {"acme/widgets": True, "acme/other": False}
 
+    async def test_actions_enabled_flag_is_carried_through(self) -> None:
+        client = make_client(commits_handler(SINGLE_DEP_MESSAGE))
+        discovery = FakeDiscovery({"acme/widgets": [], "acme/other": []})
+        service = FleetService(
+            client,
+            discovery,  # type: ignore[arg-type]
+            FakeCIService(),  # type: ignore[arg-type]
+            actions_enabled_repos=frozenset({"acme/widgets"}),
+        )
+
+        views = await service.get_fleet_view()
+
+        by_repo = {view.repo: view.actions_enabled for view in views}
+        assert by_repo == {"acme/widgets": True, "acme/other": False}
+
 
 class TestFleetScale:
     async def test_forty_repos_150_prs_completes_quickly_from_warm_cache(self) -> None:

@@ -115,6 +115,27 @@ class TestOverrides:
         with pytest.raises(KeyError):
             config.merge_method_for("SimplicityGuy/does-not-exist")
 
+    def test_actions_enabled_for_reflects_the_per_repo_flag(self, tmp_path: Path) -> None:
+        config_path = write_yaml(
+            tmp_path,
+            """
+            repos:
+              - repo: SimplicityGuy/tracktion
+                actions: true
+              - repo: SimplicityGuy/DependaPilot
+            """,
+        )
+        config = load_fleet_config(config_path)
+
+        assert config.actions_enabled_for("SimplicityGuy/tracktion") is True
+        assert config.actions_enabled_for("SimplicityGuy/DependaPilot") is False
+
+    def test_actions_enabled_for_unknown_repo_is_false_not_a_raise(self, tmp_path: Path) -> None:
+        config_path = write_yaml(tmp_path, "repos: []\n")
+        config = load_fleet_config(config_path)
+
+        assert config.actions_enabled_for("SimplicityGuy/does-not-exist") is False
+
 
 class TestRejectionCases:
     def test_bad_slug_missing_owner_is_rejected(self, tmp_path: Path) -> None:

@@ -10,6 +10,27 @@
       <h2>{{ repo.repo }}</h2>
       <span class="badge badge-audit-placeholder" title="Audit UI lands in a later bead">Audit: —</span>
       <span class="pr-count">{{ repo.rows|length }} open PR{{ "" if repo.rows|length == 1 else "s" }}</span>
+      {% if repo.actions_enabled and repo.rows %}
+      <span class="bulk-toolbar" data-repo="{{ repo.repo }}">
+        <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
+        <button
+          hx-post="/fleet/bulk/preview"
+          hx-vals='js:{"action": "approve", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-target="#bulk-panel"
+          hx-swap="outerHTML"
+        >
+          Approve all eligible
+        </button>
+        <button
+          hx-post="/fleet/bulk/preview"
+          hx-vals='js:{"action": "merge", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-target="#bulk-panel"
+          hx-swap="outerHTML"
+        >
+          Merge all eligible
+        </button>
+      </span>
+      {% endif %}
     </div>
 
     {% if repo.error %}
@@ -27,13 +48,14 @@
           <th>CI</th>
           <th>Safety</th>
           <th>Age</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for row in repo.rows %}
         <tr>
           {% if row.error %}
-          <td colspan="7" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
+          <td colspan="8" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
           {% else %}
           <td><a href="{{ row.pr.html_url }}" target="_blank" rel="noopener">#{{ row.pr.number }}</a></td>
           <td>
@@ -80,6 +102,14 @@
             <span class="stale-flag">Stale</span>
             {% endif %}
           </td>
+          {% if repo.actions_enabled %}
+          {% set repo_parts = row.pr.repo.split("/", 1) %}
+          {% with owner = repo_parts[0], repo_name = repo_parts[1], ci_green = (row.ci_status.verdict.value == "green"), head_sha = row.pr.head_sha, number = row.pr.number, outcome = none %}
+          {% include "_actions_cell.html" %}
+          {% endwith %}
+          {% else %}
+          <td class="actions actions-disabled" title="Enable 'actions: true' for this repo in repos.yml">—</td>
+          {% endif %}
           {% endif %}
         </tr>
         {% endfor %}
