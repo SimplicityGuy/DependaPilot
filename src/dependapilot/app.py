@@ -1,5 +1,6 @@
 """FastAPI application factory for DependaPilot."""
 
+import asyncio
 from pathlib import Path
 from typing import Annotated
 
@@ -10,8 +11,17 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from dependapilot.actions import ActionOutcome, ActionResult, ActionsService
+from dependapilot.audit_service import (
+    SETTINGS_CHECKS,
+    SETTINGS_REMEDIATION_HINT,
+    AuditBadge,
+    AuditService,
+    RepoAuditView,
+    badge_for,
+)
 from dependapilot.bulk import execute_bulk, preview_bulk
 from dependapilot.fleet import FleetService
+from dependapilot.github.errors import GitHubAPIError, github_error_message
 from dependapilot.scoring import SafetyBucket
 
 BASE_DIR = Path(__file__).parent
@@ -19,11 +29,14 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.globals["SETTINGS_CHECKS"] = frozenset(check.value for check in SETTINGS_CHECKS)
+templates.env.globals["SETTINGS_REMEDIATION_HINT"] = SETTINGS_REMEDIATION_HINT
 
 
 def create_app(
     fleet_service: FleetService | None = None,
     actions_service: ActionsService | None = None,
+    audit_service: AuditService | None = None,
 ) -> FastAPI:
     """Build and configure the DependaPilot FastAPI application.
 
@@ -35,10 +48,14 @@ def create_app(
     `actions_service` is likewise `None` until the dashboard is wired to a
     live `GitHubClient`; every action route degrades to an inline "not
     configured" outcome rather than raising when it's absent.
+
+    `audit_service` follows the same contract for the `/audit` page and the
+    fleet-view audit badge.
     """
     app = FastAPI(title="DependaPilot")
     app.state.fleet_service = fleet_service
     app.state.actions_service = actions_service
+    app.state.audit_service = audit_service
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     @app.get("/healthz")
@@ -54,12 +71,66 @@ def create_app(
         service: FleetService | None = request.app.state.fleet_service
         if service is None:
             return templates.TemplateResponse(
-                request, "_fleet.html", {"repos": (), "unconfigured": True}
+                request, "_fleet.html", {"repos": (), "unconfigured": True, "audit_badges": {}}
             )
-        repos = await service.get_fleet_view(force_refresh=refresh)
-        return templates.TemplateResponse(
-            request, "_fleet.html", {"repos": repos, "unconfigured": False}
+        audit: AuditService | None = request.app.state.audit_service
+        repos, audit_badges = await asyncio.gather(
+            service.get_fleet_view(force_refresh=refresh),
+            _audit_badges(audit, refresh=refresh),
         )
+        return templates.TemplateResponse(
+            request,
+            "_fleet.html",
+            {"repos": repos, "unconfigured": False, "audit_badges": audit_badges},
+        )
+
+    def _render_audit_repo(request: Request, view: RepoAuditView) -> HTMLResponse:
+        return templates.TemplateResponse(request, "_audit_repo.html", {"view": view})
+
+    @app.get("/audit", response_class=HTMLResponse)
+    def audit_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "audit.html", {})
+
+    @app.get("/audit/list", response_class=HTMLResponse)
+    async def audit_list(request: Request, refresh: bool = False) -> HTMLResponse:
+        service: AuditService | None = request.app.state.audit_service
+        if service is None:
+            return templates.TemplateResponse(
+                request, "_audit_list.html", {"views": (), "unconfigured": True}
+            )
+        views = await service.get_audit_view(force_refresh=refresh)
+        return templates.TemplateResponse(
+            request, "_audit_list.html", {"views": views, "unconfigured": False}
+        )
+
+    @app.get("/audit/{owner}/{repo}", response_class=HTMLResponse)
+    async def reaudit_repo(request: Request, owner: str, repo: str) -> HTMLResponse:
+        service: AuditService | None = request.app.state.audit_service
+        repo_slug = f"{owner}/{repo}"
+        if service is None:
+            return _render_audit_repo(
+                request, RepoAuditView(repo=repo_slug, error="Audit service is not configured.")
+            )
+        view = await service.get_repo_view(repo_slug, force_refresh=True)
+        return _render_audit_repo(request, view)
+
+    @app.post("/audit/{owner}/{repo}/fix-pr", response_class=HTMLResponse)
+    async def audit_fix_pr(request: Request, owner: str, repo: str) -> HTMLResponse:
+        service: AuditService | None = request.app.state.audit_service
+        repo_slug = f"{owner}/{repo}"
+        if service is None:
+            return _render_audit_repo(
+                request, RepoAuditView(repo=repo_slug, error="Audit service is not configured.")
+            )
+        try:
+            await service.open_fix_pr(repo_slug)
+        except GitHubAPIError as exc:
+            view = service.record_fix_pr_error(repo_slug, github_error_message(exc))
+        except RuntimeError as exc:
+            view = service.record_fix_pr_error(repo_slug, str(exc))
+        else:
+            view = await service.get_repo_view(repo_slug)
+        return _render_audit_repo(request, view)
 
     def _render_action_result(
         request: Request, owner: str, repo: str, number: int, sha: str, result: ActionResult
@@ -163,6 +234,15 @@ def create_app(
         )
 
     return app
+
+
+async def _audit_badges(service: AuditService | None, *, refresh: bool) -> dict[str, AuditBadge]:
+    """Every audit-enabled repo's fleet-view badge, sourced from `AuditService`'s
+    own cache so the fleet view never triggers a redundant audit run."""
+    if service is None:
+        return {}
+    views = await service.get_audit_view(force_refresh=refresh)
+    return {view.repo: badge_for(view) for view in views}
 
 
 def _unconfigured_result(owner: str, repo: str, number: int, action: str) -> ActionResult:

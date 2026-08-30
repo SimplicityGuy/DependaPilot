@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DependaPilot — Audit</title>
+    <script src="/static/vendor/htmx.min.js"></script>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+      h1 { margin-bottom: 0.25rem; }
+      .subtitle { color: #666; margin-top: 0; }
+      .nav-links { margin: 0.5rem 0 1.5rem; }
+      .htmx-indicator { opacity: 0; transition: opacity 200ms ease; }
+      .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+      .repo { border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+      .repo-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: space-between; }
+      .repo-header h2 { margin: 0; font-size: 1.1rem; }
+      .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+      .badge-severity-high { background: #fde3e3; color: #9a1f1f; }
+      .badge-severity-medium { background: #fff3cd; color: #8a6b00; }
+      .badge-severity-low { background: #e6f0ff; color: #1a4fa0; }
+      .badge-severity-info { background: #eee; color: #666; }
+      .repo-error, .fleet-error { color: #9a1f1f; background: #fde3e3; padding: 0.5rem 0.75rem; border-radius: 6px; }
+      .fleet-empty { color: #666; font-style: italic; }
+      .audit-ok { color: #14602c; font-weight: 600; }
+      .audit-findings { list-style: none; margin: 0.75rem 0; padding: 0; }
+      .finding { padding: 0.5rem 0; border-bottom: 1px solid #eee; font-size: 0.92rem; }
+      .finding code { background: #f4f4f4; padding: 0.05rem 0.35rem; border-radius: 4px; font-size: 0.85rem; }
+      .finding-info { color: #555; }
+      .remediation-hint { margin: 0.25rem 0 0; color: #666; font-size: 0.85rem; font-style: italic; }
+      .audit-diff { margin: 0.75rem 0; }
+      .audit-diff summary { cursor: pointer; font-weight: 600; }
+      pre.diff { background: #f8f8f8; border: 1px solid #eee; border-radius: 6px; padding: 0.75rem; overflow-x: auto; font-size: 0.82rem; margin-top: 0.5rem; }
+      .diff-line { display: block; white-space: pre; }
+      .diff-add { background: #e6ffed; color: #14602c; }
+      .diff-del { background: #ffeef0; color: #9a1f1f; }
+      .diff-hunk { color: #6f42c1; }
+      .fix-pr { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+      .fix-pr button { font-size: 0.85rem; padding: 0.3rem 0.7rem; }
+      .repo-header button { font-size: 0.82rem; padding: 0.2rem 0.6rem; }
+    </style>
+  </head>
+  <body>
+    <h1>DependaPilot</h1>
+    <p class="subtitle">Config audit: findings, suggested fixes, and one-click fix PRs.</p>
+    <p class="nav-links"><a href="/">&larr; Fleet dashboard</a></p>
+
+    <div id="audit-list" hx-get="/audit/list" hx-trigger="load" hx-swap="outerHTML">
+      <p class="fleet-empty">Loading audit…</p>
+    </div>
+  </body>
+</html>
