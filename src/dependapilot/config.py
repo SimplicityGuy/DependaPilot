@@ -75,6 +75,17 @@ class FleetConfig(BaseModel):
         """
         return self._entry(repo).merge_method or self.defaults.merge_method
 
+    def actions_enabled_for(self, repo: str) -> bool:
+        """Whether `repo` has opted into dashboard actions (approve/merge/rebase).
+
+        Unlike `merge_method_for`, this never raises: a repo absent from
+        `repos` (or without `actions: true`) is simply not opted in.
+        """
+        try:
+            return self._entry(repo).actions
+        except KeyError:
+            return False
+
     def _entry(self, repo: str) -> RepoConfig:
         for entry in self.repos:
             if entry.repo == repo:

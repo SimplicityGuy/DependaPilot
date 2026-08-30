@@ -27,13 +27,14 @@
           <th>CI</th>
           <th>Safety</th>
           <th>Age</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for row in repo.rows %}
         <tr>
           {% if row.error %}
-          <td colspan="7" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
+          <td colspan="8" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
           {% else %}
           <td><a href="{{ row.pr.html_url }}" target="_blank" rel="noopener">#{{ row.pr.number }}</a></td>
           <td>
@@ -80,6 +81,14 @@
             <span class="stale-flag">Stale</span>
             {% endif %}
           </td>
+          {% if repo.actions_enabled %}
+          {% set repo_parts = row.pr.repo.split("/", 1) %}
+          {% with owner = repo_parts[0], repo_name = repo_parts[1], ci_green = (row.ci_status.verdict.value == "green"), head_sha = row.pr.head_sha, number = row.pr.number, outcome = none %}
+          {% include "_actions_cell.html" %}
+          {% endwith %}
+          {% else %}
+          <td class="actions actions-disabled" title="Enable 'actions: true' for this repo in repos.yml">—</td>
+          {% endif %}
           {% endif %}
         </tr>
         {% endfor %}
