@@ -5,9 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>DependaPilot</title>
     <script src="/static/vendor/htmx.min.js"></script>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+      h1 { margin-bottom: 0.25rem; }
+      .subtitle { color: #666; margin-top: 0; }
+      #fleet-toolbar { margin: 1.5rem 0; display: flex; align-items: center; gap: 0.75rem; }
+      .htmx-indicator { opacity: 0; transition: opacity 200ms ease; }
+      .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+      .repo { border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+      .repo-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+      .repo-header h2 { margin: 0; font-size: 1.1rem; }
+      .pr-count { color: #666; font-size: 0.9rem; }
+      table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+      th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+      .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+      .badge-audit-placeholder { background: #eee; color: #666; }
+      .badge-semver-patch { background: #d7f3df; color: #14602c; }
+      .badge-semver-minor { background: #e6f0ff; color: #1a4fa0; }
+      .badge-semver-major, .badge-semver-unknown { background: #fde3e3; color: #9a1f1f; }
+      .badge-dependency-type { background: #f0eefc; color: #4a3a9c; }
+      .badge-ci-green { background: #d7f3df; color: #14602c; }
+      .badge-ci-pending { background: #fff3cd; color: #8a6b00; }
+      .badge-ci-failing { background: #fde3e3; color: #9a1f1f; }
+      .badge-ci-no_ci { background: #eee; color: #666; }
+      .badge-bucket-safe { background: #d7f3df; color: #14602c; }
+      .badge-bucket-caution { background: #fff3cd; color: #8a6b00; }
+      .badge-bucket-unsafe { background: #fde3e3; color: #9a1f1f; }
+      .stale-flag { color: #9a1f1f; font-weight: 600; font-size: 0.85rem; }
+      .breakdown { margin: 0.4rem 0 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: #444; }
+      .repo-error, .row-error, .fleet-error { color: #9a1f1f; background: #fde3e3; padding: 0.5rem 0.75rem; border-radius: 6px; }
+      .repo-empty, .fleet-empty { color: #666; font-style: italic; }
+    </style>
   </head>
   <body>
     <h1>DependaPilot</h1>
-    <p>Automated dependency update orchestration.</p>
+    <p class="subtitle">Automated dependency update orchestration.</p>
+
+    <div id="fleet-toolbar">
+      <button
+        hx-get="/fleet?refresh=true"
+        hx-target="#fleet"
+        hx-swap="outerHTML"
+        hx-indicator="#fleet-loading"
+      >
+        Refresh
+      </button>
+      <span id="fleet-loading" class="htmx-indicator">Refreshing…</span>
+    </div>
+
+    <div id="fleet" hx-get="/fleet" hx-trigger="load" hx-swap="outerHTML">
+      <p class="fleet-empty">Loading fleet…</p>
+    </div>
   </body>
 </html>
