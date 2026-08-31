@@ -29,13 +29,22 @@
       {% set audit_off_reason = "Audit service is not configured" if repo.audit_enabled else "Enable audit: true for this repo in repos.yml" %}
       <span class="badge badge-audit-off" title="{{ audit_off_reason }}">Audit: off</span>
       {% endif %}
+      {% if not repo.actions_enabled %}
+      {% set actions_off_reason = "Enable actions: true for this repo in repos.yml" if actions_configured else "Actions service is not configured" %}
+      <span
+        class="badge badge-actions-{{ 'off' if actions_configured else 'unconfigured' }}"
+        title="{{ actions_off_reason }}"
+      >
+        Actions: off
+      </span>
+      {% endif %}
       <span class="pr-count">{{ repo.rows|length }} open PR{{ "" if repo.rows|length == 1 else "s" }}</span>
       {% if repo.actions_enabled and repo.rows %}
       <span class="bulk-toolbar" data-repo="{{ repo.repo }}">
         <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
         <button
           hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "approve", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-vals='js:{"action": "approve", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(event.target.closest(".repo").querySelectorAll(".bulk-select-row:checked")).map(cb => cb.value)}'
           hx-target="#bulk-panel"
           hx-swap="outerHTML"
         >
@@ -43,7 +52,7 @@
         </button>
         <button
           hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "merge", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-vals='js:{"action": "merge", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(event.target.closest(".repo").querySelectorAll(".bulk-select-row:checked")).map(cb => cb.value)}'
           hx-target="#bulk-panel"
           hx-swap="outerHTML"
         >
@@ -61,6 +70,16 @@
     <table>
       <thead>
         <tr>
+          {% if repo.actions_enabled %}
+          <th>
+            <input
+              type="checkbox"
+              class="bulk-select-all"
+              title="Select all"
+              onchange="this.closest('table').querySelectorAll('.bulk-select-row').forEach(function (cb) { cb.checked = this.checked; }, this)"
+            />
+          </th>
+          {% endif %}
           <th>PR</th>
           <th>Dependency</th>
           <th>Semver</th>
@@ -75,8 +94,18 @@
         {% for row in repo.rows %}
         <tr>
           {% if row.error %}
-          <td colspan="8" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
+          <td colspan="{{ 9 if repo.actions_enabled else 8 }}" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
           {% else %}
+          {% if repo.actions_enabled %}
+          <td>
+            <input
+              type="checkbox"
+              class="bulk-select-row"
+              name="selected"
+              value="{{ row.pr.repo }}#{{ row.pr.number }}"
+            />
+          </td>
+          {% endif %}
           <td><a href="{{ row.pr.html_url }}" target="_blank" rel="noopener">#{{ row.pr.number }}</a></td>
           <td>
             {% if row.summary.names %}

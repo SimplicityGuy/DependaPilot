@@ -35,6 +35,9 @@
       <input type="hidden" name="action" value="{{ preview.action }}" />
       {% if repo %}<input type="hidden" name="repo" value="{{ repo }}" />{% endif %}
       <input type="hidden" name="min_bucket" value="{{ preview.min_bucket.value }}" />
+      {% for value in selected %}
+      <input type="hidden" name="selected" value="{{ value }}" />
+      {% endfor %}
       <button type="submit">Confirm {{ preview.action }}</button>
     </form>
     {% endif %}

@@ -19,7 +19,7 @@ from dependapilot.audit_service import (
     RepoAuditView,
     badge_for,
 )
-from dependapilot.bulk import execute_bulk, preview_bulk
+from dependapilot.bulk import execute_bulk, parse_selection, preview_bulk
 from dependapilot.ci import CIVerdictService
 from dependapilot.config import FleetConfig
 from dependapilot.discovery import DiscoveryService
@@ -75,9 +75,17 @@ def create_app(
         service: FleetService | None = request.app.state.fleet_service
         if service is None:
             return templates.TemplateResponse(
-                request, "_fleet.html", {"repos": (), "unconfigured": True, "audit_badges": {}}
+                request,
+                "_fleet.html",
+                {
+                    "repos": (),
+                    "unconfigured": True,
+                    "audit_badges": {},
+                    "actions_configured": False,
+                },
             )
         audit: AuditService | None = request.app.state.audit_service
+        actions: ActionsService | None = request.app.state.actions_service
         repos, audit_badges = await asyncio.gather(
             service.get_fleet_view(force_refresh=refresh),
             _audit_badges(audit, refresh=refresh),
@@ -85,7 +93,12 @@ def create_app(
         return templates.TemplateResponse(
             request,
             "_fleet.html",
-            {"repos": repos, "unconfigured": False, "audit_badges": audit_badges},
+            {
+                "repos": repos,
+                "unconfigured": False,
+                "audit_badges": audit_badges,
+                "actions_configured": actions is not None,
+            },
         )
 
     def _render_audit_repo(request: Request, view: RepoAuditView) -> HTMLResponse:
@@ -196,20 +209,32 @@ def create_app(
         action: Annotated[str, Form()],
         repo: Annotated[str | None, Form()] = None,
         min_bucket: Annotated[str, Form()] = SafetyBucket.SAFE.value,
+        selected: Annotated[list[str] | None, Form()] = None,
     ) -> HTMLResponse:
         fleet_service: FleetService | None = request.app.state.fleet_service
         if fleet_service is None:
             return templates.TemplateResponse(request, "_bulk_panel.html", {"unconfigured": True})
         try:
+            selection = parse_selection(selected) if selected else None
             preview = await preview_bulk(
-                fleet_service, action=action, repo=repo, min_bucket=SafetyBucket(min_bucket)
+                fleet_service,
+                action=action,
+                repo=repo,
+                min_bucket=SafetyBucket(min_bucket),
+                selected=selection,
             )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return templates.TemplateResponse(
             request,
             "_bulk_panel.html",
-            {"preview": preview, "repo": repo, "min_bucket": min_bucket, "unconfigured": False},
+            {
+                "preview": preview,
+                "repo": repo,
+                "min_bucket": min_bucket,
+                "unconfigured": False,
+                "selected": selected or (),
+            },
         )
 
     @app.post("/fleet/bulk/execute", response_class=HTMLResponse)
@@ -218,18 +243,21 @@ def create_app(
         action: Annotated[str, Form()],
         repo: Annotated[str | None, Form()] = None,
         min_bucket: Annotated[str, Form()] = SafetyBucket.SAFE.value,
+        selected: Annotated[list[str] | None, Form()] = None,
     ) -> HTMLResponse:
         fleet_service: FleetService | None = request.app.state.fleet_service
         actions_service: ActionsService | None = request.app.state.actions_service
         if fleet_service is None or actions_service is None:
             return templates.TemplateResponse(request, "_bulk_results.html", {"unconfigured": True})
         try:
+            selection = parse_selection(selected) if selected else None
             outcome = await execute_bulk(
                 fleet_service,
                 actions_service,
                 action=action,
                 repo=repo,
                 min_bucket=SafetyBucket(min_bucket),
+                selected=selection,
             )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
