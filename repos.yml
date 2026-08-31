@@ -1,0 +1,33 @@
+# DependaPilot fleet configuration.
+#
+# This file is the source of truth for which GitHub repositories
+# DependaPilot manages and the policy knobs the audit and dashboard read.
+# Schema is enforced by src/dependapilot/config.py (FleetConfig) — unknown
+# keys, malformed "owner/repo" slugs, and unrecognized merge_method values
+# all fail to load with a clear error.
+
+defaults:
+  # How DependaPilot merges a Dependabot PR when it takes the "merge" action.
+  # One of: merge | squash | rebase.
+  merge_method: merge
+  # Floor, in days, below which a repo's Dependabot cooldown config is
+  # flagged as weakening GitHub's native release cooldown.
+  cooldown_floor_days: 3
+
+repos:
+  # No overrides: audit (the config-audit pass -- dependabot.yml schema +
+  # completeness + security settings + cooldown checks) is on by default;
+  # actions (approve/merge/rebase from the dashboard) stays off.
+  - repo: SimplicityGuy/DependaPilot
+
+  # Overrides the fleet's default merge method for this repo only.
+  - repo: SimplicityGuy/vinyldigger
+    merge_method: squash
+
+  # Audit is on by default -- no override needed here.
+  - repo: SimplicityGuy/cronduit
+
+  # Opts into fleet actions (approve/merge/rebase from the dashboard) for
+  # this repo. Audit is on by default, same as every other repo.
+  - repo: SimplicityGuy/tracktion
+    actions: true

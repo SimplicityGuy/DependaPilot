@@ -1,0 +1,142 @@
+<div id="fleet">
+  {% if unconfigured %}
+  <p class="fleet-error">Fleet service is not configured.</p>
+  {% elif not repos %}
+  <p class="fleet-empty">No repositories are configured for this fleet.</p>
+  {% else %}
+  {% for repo in repos %}
+  <section class="repo">
+    <div class="repo-header">
+      <h2>{{ repo.repo }}</h2>
+      {% set badge = audit_badges.get(repo.repo) if repo.audit_enabled else none %}
+      {% if badge %}
+      <a
+        class="badge badge-audit-{{ badge.state.value }}"
+        href="/audit#audit-{{ repo.repo|replace('/', '-') }}"
+        title="Open the audit view for this repo"
+      >
+        {%- if badge.state.value == "ok" -%}
+        Audit: ok
+        {%- elif badge.state.value == "findings" -%}
+        Audit: {{ badge.count }} finding{{ "" if badge.count == 1 else "s" }}
+        {%- elif badge.state.value == "unknown" -%}
+        Audit: unknown
+        {%- else -%}
+        Audit: error
+        {%- endif -%}
+      </a>
+      {% else %}
+      {% set audit_off_reason = "Audit service is not configured" if repo.audit_enabled else "Enable audit: true for this repo in repos.yml" %}
+      <span class="badge badge-audit-off" title="{{ audit_off_reason }}">Audit: off</span>
+      {% endif %}
+      <span class="pr-count">{{ repo.rows|length }} open PR{{ "" if repo.rows|length == 1 else "s" }}</span>
+      {% if repo.actions_enabled and repo.rows %}
+      <span class="bulk-toolbar" data-repo="{{ repo.repo }}">
+        <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
+        <button
+          hx-post="/fleet/bulk/preview"
+          hx-vals='js:{"action": "approve", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-target="#bulk-panel"
+          hx-swap="outerHTML"
+        >
+          Approve all eligible
+        </button>
+        <button
+          hx-post="/fleet/bulk/preview"
+          hx-vals='js:{"action": "merge", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-target="#bulk-panel"
+          hx-swap="outerHTML"
+        >
+          Merge all eligible
+        </button>
+      </span>
+      {% endif %}
+    </div>
+
+    {% if repo.error %}
+    <p class="repo-error">Could not load this repo's PRs: {{ repo.error }}</p>
+    {% elif not repo.rows %}
+    <p class="repo-empty">No open Dependabot pull requests.</p>
+    {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>PR</th>
+          <th>Dependency</th>
+          <th>Semver</th>
+          <th>Type</th>
+          <th>CI</th>
+          <th>Safety</th>
+          <th>Age</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in repo.rows %}
+        <tr>
+          {% if row.error %}
+          <td colspan="8" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
+          {% else %}
+          <td><a href="{{ row.pr.html_url }}" target="_blank" rel="noopener">#{{ row.pr.number }}</a></td>
+          <td>
+            {% if row.summary.names %}
+            {{ row.summary.names|join(", ") }}
+            {% else %}
+            {{ row.pr.title }}
+            {% endif %}
+            <br />
+            <small>{{ row.summary.old_version or "unknown" }} &rarr; {{ row.summary.new_version or "unknown" }}</small>
+          </td>
+          <td>
+            {% for label in row.summary.semver_labels %}
+            <span class="badge badge-semver-{{ label }}">{{ label }}</span>
+            {% else %}
+            <span class="badge badge-semver-unknown">unknown</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% for label in row.summary.dependency_type_labels %}
+            <span class="badge badge-dependency-type">{{ label }}</span>
+            {% else %}
+            <span class="badge badge-dependency-type">unknown</span>
+            {% endfor %}
+          </td>
+          <td>
+            <span class="badge badge-ci-{{ row.ci_status.verdict.value }}">{{ row.ci_status.verdict.value }}</span>
+          </td>
+          <td>
+            <details>
+              <summary>
+                <span class="badge badge-bucket-{{ row.safety.bucket.value }}">{{ row.safety.bucket.value }}</span>
+                {{ row.safety.score }}
+              </summary>
+              <ul class="breakdown">
+                {% for signal in row.safety.breakdown %}
+                <li><strong>{{ signal.signal }}</strong> ({{ "%+d"|format(signal.delta) }}): {{ signal.reason }}</li>
+                {% endfor %}
+              </ul>
+            </details>
+          </td>
+          <td>
+            {% if row.safety.stale %}
+            <span class="stale-flag">Stale</span>
+            {% endif %}
+          </td>
+          {% if repo.actions_enabled %}
+          {% set repo_parts = row.pr.repo.split("/", 1) %}
+          {% with owner = repo_parts[0], repo_name = repo_parts[1], ci_green = (row.ci_status.verdict.value == "green"), head_sha = row.pr.head_sha, number = row.pr.number, outcome = none %}
+          {% include "_actions_cell.html" %}
+          {% endwith %}
+          {% else %}
+          <td class="actions actions-disabled" title="Enable 'actions: true' for this repo in repos.yml">—</td>
+          {% endif %}
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+  {% endfor %}
+  {% endif %}
+</div>

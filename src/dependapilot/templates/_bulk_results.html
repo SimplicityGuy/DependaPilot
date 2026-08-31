@@ -1,0 +1,20 @@
+<div id="bulk-panel">
+  {% if unconfigured %}
+  <p class="fleet-error">Fleet service is not configured.</p>
+  {% else %}
+  <div class="bulk-results">
+    <h3>{{ outcome.action|capitalize }} results</h3>
+    <ul>
+      {% for result in outcome.acted_on %}
+      <li class="{{ 'action-ok' if result.ok else 'action-fail' }}">
+        {{ result.repo }}#{{ result.number }}: {{ result.outcome.value }}{% if result.message %} &mdash; {{ result.message }}{% endif %}
+      </li>
+      {% endfor %}
+      {% for decision in outcome.skipped %}
+      <li class="action-skip">{{ decision.repo }}#{{ decision.number }}: skipped &mdash; {{ decision.reason }}</li>
+      {% endfor %}
+    </ul>
+    <button type="button" onclick="this.closest('#bulk-panel').replaceChildren()">Dismiss</button>
+  </div>
+  {% endif %}
+</div>

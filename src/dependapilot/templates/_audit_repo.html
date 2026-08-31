@@ -1,0 +1,64 @@
+{% set anchor_id = "audit-" ~ view.repo|replace("/", "-") %}
+{% set repo_parts = view.repo.split("/", 1) %}
+<section class="repo audit-repo" id="{{ anchor_id }}">
+  <div class="repo-header">
+    <h2>{{ view.repo }}</h2>
+    <button
+      hx-get="/audit/{{ repo_parts[0] }}/{{ repo_parts[1] }}"
+      hx-target="#{{ anchor_id }}"
+      hx-swap="outerHTML"
+    >
+      Re-audit
+    </button>
+  </div>
+
+  {% if view.error %}
+  <p class="repo-error">Could not audit this repo: {{ view.error }}</p>
+  {% else %}
+
+  {% if not view.findings %}
+  <p class="audit-ok">No findings — configuration is compliant.</p>
+  {% else %}
+  <ul class="audit-findings">
+    {% for finding in view.findings %}
+    <li class="finding finding-{{ finding.severity.value }}">
+      <span class="badge badge-severity-{{ finding.severity.value }}">{{ finding.severity.value }}</span>
+      <code>{{ finding.check.value }}</code>
+      {{ finding.message }}
+      {% if finding.check.value in SETTINGS_CHECKS %}
+      <p class="remediation-hint">{{ SETTINGS_REMEDIATION_HINT }}</p>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <details class="audit-diff" open>
+    <summary>Config diff (current &rarr; suggested)</summary>
+    {% if view.diff %}
+    <pre class="diff">{% for line in view.diff -%}
+<span class="diff-line{{ ' diff-add' if line.startswith('+') and not line.startswith('+++') else ' diff-del' if line.startswith('-') and not line.startswith('---') else ' diff-hunk' if line.startswith('@@') else '' }}">{{ line }}</span>
+{% endfor -%}</pre>
+    {% else %}
+    <p class="audit-ok">Current config already matches the suggested configuration.</p>
+    {% endif %}
+  </details>
+
+  <div class="fix-pr">
+    {% if view.existing_fix_pr_url %}
+    <span>Fix PR: <a href="{{ view.existing_fix_pr_url }}" target="_blank" rel="noopener">{{ view.existing_fix_pr_url }}</a></span>
+    {% endif %}
+    <form
+      hx-post="/audit/{{ repo_parts[0] }}/{{ repo_parts[1] }}/fix-pr"
+      hx-target="#{{ anchor_id }}"
+      hx-swap="outerHTML"
+      hx-confirm="{{ ('Update the existing fix PR for ' ~ view.repo ~ '?') if view.existing_fix_pr_url else ('Open a fix PR for ' ~ view.repo ~ '?') }}"
+    >
+      <button type="submit">{{ "Update fix PR" if view.existing_fix_pr_url else "Open fix PR" }}</button>
+    </form>
+    {% if view.fix_pr_error %}
+    <span class="repo-error">Fix PR failed: {{ view.fix_pr_error }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>

@@ -1,0 +1,38 @@
+{% set cell_id = "actions-" ~ owner ~ "-" ~ repo_name ~ "-" ~ number %}
+<td class="actions" id="{{ cell_id }}">
+  {% if outcome %}
+  <p class="action-outcome {{ 'action-ok' if outcome.ok else 'action-fail' }}">
+    {{ outcome.action|capitalize }}: {{ outcome.outcome.value }}{% if outcome.message %} &mdash; {{ outcome.message }}{% endif %}
+  </p>
+  {% endif %}
+  {% if not outcome or outcome.outcome.value != "merged" %}
+  <form
+    hx-post="/repos/{{ owner }}/{{ repo_name }}/pulls/{{ number }}/approve"
+    hx-target="#{{ cell_id }}"
+    hx-swap="outerHTML"
+    class="action-form"
+  >
+    <input type="hidden" name="sha" value="{{ head_sha }}" />
+    <button type="submit">Approve</button>
+  </form>
+  <form
+    hx-post="/repos/{{ owner }}/{{ repo_name }}/pulls/{{ number }}/merge"
+    hx-target="#{{ cell_id }}"
+    hx-swap="outerHTML"
+    hx-confirm="Merge {{ owner }}/{{ repo_name }} #{{ number }}? This cannot be undone."
+    class="action-form"
+  >
+    <input type="hidden" name="sha" value="{{ head_sha }}" />
+    <button type="submit" {{ "disabled" if not ci_green else "" }}>Merge</button>
+  </form>
+  <form
+    hx-post="/repos/{{ owner }}/{{ repo_name }}/pulls/{{ number }}/rebase"
+    hx-target="#{{ cell_id }}"
+    hx-swap="outerHTML"
+    class="action-form"
+  >
+    <input type="hidden" name="sha" value="{{ head_sha }}" />
+    <button type="submit">Rebase</button>
+  </form>
+  {% endif %}
+</td>
