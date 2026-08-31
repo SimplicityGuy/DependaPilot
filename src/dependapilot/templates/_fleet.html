@@ -132,7 +132,11 @@
       <div class="spacer"></div>
       {% if repo.actions_enabled and repo.rows %}
       <span class="bulk-toolbar" data-repo="{{ repo.repo }}">
-        <label class="toggle-label bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
+        <label class="toggle-label bulk-caution">
+          <input type="checkbox" class="bulk-caution-toggle toggle-input" />
+          <span class="toggle"><span class="toggle-knob"></span></span>
+          include caution
+        </label>
         <button
           class="btn btn-row"
           type="button"
