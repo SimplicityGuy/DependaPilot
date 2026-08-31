@@ -15,19 +15,20 @@ defaults:
   cooldown_floor_days: 3
 
 repos:
-  # No overrides: audit (the config-audit pass -- dependabot.yml schema +
-  # completeness + security settings + cooldown checks) is on by default;
-  # actions (approve/merge/rebase from the dashboard) stays off.
+  # Audit (the config-audit pass -- dependabot.yml schema + completeness +
+  # security settings + cooldown checks) is on by default for every repo.
+  # actions: true opts a repo into fleet actions (approve/merge/rebase and
+  # the bulk toolbar on the dashboard); it defaults to off as a guardrail.
   - repo: SimplicityGuy/DependaPilot
+    actions: true
 
   # Overrides the fleet's default merge method for this repo only.
   - repo: SimplicityGuy/vinyldigger
     merge_method: squash
+    actions: true
 
-  # Audit is on by default -- no override needed here.
   - repo: SimplicityGuy/cronduit
+    actions: true
 
-  # Opts into fleet actions (approve/merge/rebase from the dashboard) for
-  # this repo. Audit is on by default, same as every other repo.
   - repo: SimplicityGuy/tracktion
     actions: true
