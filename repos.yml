@@ -23,12 +23,13 @@ repos:
     actions: true
 
   # Overrides the fleet's default merge method for this repo only.
-  - repo: SimplicityGuy/vinyldigger
+  - repo: SimplicityGuy/discogsography
     merge_method: squash
     actions: true
 
   - repo: SimplicityGuy/cronduit
     actions: true
 
-  - repo: SimplicityGuy/tracktion
+  - repo: SimplicityGuy/phaze
+    merge_method: merge
     actions: true
