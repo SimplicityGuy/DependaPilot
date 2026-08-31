@@ -9,6 +9,7 @@ the real `fetch_pr_update_metadata`, backed by a `GitHubClient` wired to an
 from __future__ import annotations
 
 import time
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -16,14 +17,22 @@ import pytest
 
 from dependapilot.ci import CIStatus, CIVerdict
 from dependapilot.discovery import PRRecord
-from dependapilot.fleet import FleetService, parse_bump_title, summarize_metadata
+from dependapilot.fleet import (
+    DependencySummary,
+    FleetService,
+    PRRow,
+    RepoView,
+    compute_fleet_totals,
+    parse_bump_title,
+    summarize_metadata,
+)
 from dependapilot.metadata import (
     DependencyType,
     MetadataStatus,
     PRUpdateMetadata,
     SemverUpdateType,
 )
-from dependapilot.scoring import SafetyBucket
+from dependapilot.scoring import SafetyBucket, SafetyScore, SignalBreakdown
 from tests.github.conftest import make_client
 
 SINGLE_DEP_MESSAGE = """\
@@ -323,6 +332,124 @@ class TestFleetScale:
         assert sum(len(view.rows) for view in views) == total_prs
         assert all(view.error is None for view in views)
         assert elapsed < 1.0
+
+
+class TestPRRowAgeDays:
+    def test_age_in_whole_days_from_created_at(self) -> None:
+        created_at = (datetime.now(UTC) - timedelta(days=5, hours=1)).isoformat()
+        row = PRRow(pr=make_pr(created_at=created_at))
+
+        assert row.age_days == 5
+
+    def test_unparseable_created_at_degrades_to_none(self) -> None:
+        row = PRRow(pr=make_pr(created_at="not-a-timestamp"))
+
+        assert row.age_days is None
+
+
+class TestPRRowClosesOpenAlert:
+    def test_true_when_signal_present_with_positive_delta(self) -> None:
+        safety = SafetyScore(
+            score=90,
+            bucket=SafetyBucket.SAFE,
+            breakdown=(
+                SignalBreakdown("closes_open_alert", 10, "closes an open Dependabot alert"),
+            ),
+            stale=False,
+        )
+        row = PRRow(pr=make_pr(), safety=safety)
+
+        assert row.closes_open_alert is True
+
+    def test_false_when_signal_present_with_zero_delta(self) -> None:
+        safety = SafetyScore(
+            score=80,
+            bucket=SafetyBucket.SAFE,
+            breakdown=(
+                SignalBreakdown("closes_open_alert", 0, "does not close an open Dependabot alert"),
+            ),
+            stale=False,
+        )
+        row = PRRow(pr=make_pr(), safety=safety)
+
+        assert row.closes_open_alert is False
+
+    def test_false_when_signal_absent(self) -> None:
+        safety = SafetyScore(score=80, bucket=SafetyBucket.SAFE, breakdown=(), stale=False)
+        row = PRRow(pr=make_pr(), safety=safety)
+
+        assert row.closes_open_alert is False
+
+    def test_false_when_safety_is_none(self) -> None:
+        row = PRRow(pr=make_pr(), error="boom")
+
+        assert row.closes_open_alert is False
+
+
+class TestComputeFleetTotals:
+    def _row(self, bucket: SafetyBucket, *, number: int = 1) -> PRRow:
+        return PRRow(
+            pr=make_pr(number=number),
+            summary=DependencySummary(
+                names=("foo",),
+                semver_labels=("patch",),
+                dependency_type_labels=("direct:development",),
+                old_version="1.0.0",
+                new_version="1.1.0",
+            ),
+            metadata=PRUpdateMetadata(status=MetadataStatus.PARSED, updates=()),
+            ci_status=CIStatus(verdict=CIVerdict.GREEN, checks=[]),
+            safety=SafetyScore(score=90, bucket=bucket, breakdown=(), stale=False),
+        )
+
+    def test_sums_reachability_prs_and_buckets(self) -> None:
+        views = (
+            RepoView(
+                repo="acme/widgets",
+                rows=(
+                    self._row(SafetyBucket.SAFE, number=1),
+                    self._row(SafetyBucket.CAUTION, number=2),
+                    self._row(SafetyBucket.UNSAFE, number=3),
+                ),
+            ),
+            RepoView(repo="acme/broken", error="boom"),
+            RepoView(repo="acme/empty", rows=()),
+        )
+
+        totals = compute_fleet_totals(views)
+
+        assert totals.repos == 3
+        assert totals.repos_reachable == 2
+        assert totals.repos_errored == 1
+        assert totals.open_prs == 3
+        assert totals.safe == 1
+        assert totals.caution == 1
+        assert totals.unsafe == 1
+
+    def test_row_level_errors_and_unscored_rows_are_excluded_from_buckets(self) -> None:
+        views = (
+            RepoView(
+                repo="acme/widgets",
+                rows=(
+                    self._row(SafetyBucket.SAFE, number=1),
+                    PRRow(pr=make_pr(number=2), error="404"),
+                ),
+            ),
+        )
+
+        totals = compute_fleet_totals(views)
+
+        assert totals.open_prs == 2
+        assert totals.safe == 1
+        assert totals.caution == 0
+        assert totals.unsafe == 0
+
+    def test_empty_fleet(self) -> None:
+        totals = compute_fleet_totals(())
+
+        assert totals == compute_fleet_totals([])
+        assert totals.repos == 0
+        assert totals.open_prs == 0
 
 
 class TestParseBumpTitle:

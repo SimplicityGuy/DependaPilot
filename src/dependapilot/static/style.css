@@ -233,8 +233,19 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 /* PR# · Dependency · Bump · Type · CI · Safety · Age · Actions */
 
 .prgrid-row { padding: 11px 20px; border-bottom: 1px solid var(--border-hair); }
-.prgrid-row:last-child { border-bottom: none; }
-.prgrid-row.is-open { background: var(--surface-open); }
+.prgrid-row.prgrid-row-last { border-bottom: none; }
+
+/* A PR row is a <details><summary class="prgrid prgrid-row"> so the whole row
+   toggles the score-breakdown ledger; strip the native disclosure marker and
+   let `[open]` drive the expanded-row highlight instead of a JS-toggled class. */
+summary.prgrid-row { list-style: none; cursor: pointer; }
+summary.prgrid-row::-webkit-details-marker { display: none; }
+details[open] > summary.prgrid-row { background: var(--surface-open); border-bottom: none; }
+.ledger-wrap {
+  padding: 4px 20px 16px 90px; background: var(--surface-open);
+  border-bottom: 1px solid var(--border-hair);
+}
+.ledger-wrap.prgrid-row-last { border-bottom: none; }
 
 .prgrid.th { padding: 9px 20px; border-bottom: 1px solid var(--border); }
 
@@ -250,6 +261,8 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 
 .safety-cell { display: inline-flex; align-items: center; gap: 8px; }
 .safety-score { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; }
+.chevron { color: var(--ink-muted); transition: transform 120ms ease; }
+details[open] .chevron { transform: rotate(180deg); }
 
 .meter { width: 40px; height: 4px; border-radius: 2px; background: var(--border); display: inline-block; }
 .meter-fill { display: block; height: 4px; border-radius: 2px; }
@@ -380,6 +393,30 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 .bulkpanel-footer-spacer { flex-grow: 1; }
 .bulkpanel-note { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
 
+/* ── Fleet dashboard: repo cards, PR grid rows ───────────────────────────── */
+
+.repo-slug { font-size: 13.5px; font-weight: 600; }
+.repo-slug-owner { color: var(--ink-muted); }
+
+.repo-pr-count { font-size: 12px; color: var(--ink-muted); }
+
+/* .spacer is defined once, above, under "Audit view" -- shared here too. */
+
+.pr-number { font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; }
+
+.dep-name { font-size: 13px; font-weight: 500; }
+.dep-version { font-family: var(--font-mono); font-size: 11.5px; margin-top: 2px; }
+
+.age-cell { display: inline-flex; align-items: center; gap: 6px; }
+.age-value { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+
+.actions-cell { display: inline-flex; gap: 6px; }
+.actions-cell-off { color: var(--ink-muted); }
+
+.action-note { font-size: 12px; margin: 0 0 6px 0; }
+
+.row-error { color: var(--unsafe); font-size: 12.5px; }
+
 /* ── Toggle ───────────────────────────────────────────────────────────── */
 
 .toggle-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
@@ -394,71 +431,22 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 .toggle.is-on { background: var(--accent-bg); }
 .toggle.is-on .toggle-knob { left: 12px; background: var(--accent); }
 
-/* ══════════════════════════════════════════════════════════════════════
- * LEGACY COMPAT — dark-adapted equivalents of the pre-redesign inline
- * styles, kept only so `_fleet.html` and `_actions_cell.html` stay usable
- * on the new dark ground between now and the bead that restyles them onto
- * the component classes above (dpilot-lbc.2). `_bulk_panel.html` /
- * `_bulk_results.html` (dpilot-lbc.3) and `_audit_list.html` / `_audit_repo.html`
- * (dpilot-lbc.4) have already adopted the component classes; `_audit_list.html`
- * still uses the shared `.fleet-error` / `.fleet-empty` rules below. Delete
- * this whole section when `_fleet.html` / `_actions_cell.html` adopt
- * .chip / .btn / .card / .prgrid / .th / .mono directly.
- * ══════════════════════════════════════════════════════════════════════ */
+/* ── Shared toolbar + loading-placeholder styles ─────────────────────────
+ * A handful of small pre-redesign rules survive because real templates
+ * still reference them directly, not because any bead is still pending:
+ * `#fleet-toolbar` and the fleet-wide `.bulk-toolbar` / `.bulk-caution`
+ * pair are index.html's own markup; `.fleet-error` / `.fleet-empty` back
+ * `_audit_list.html`'s unconfigured/empty states plus the pre-htmx-swap
+ * loading placeholders in index.html and audit.html; `.action-ok` /
+ * `.action-fail` color `_actions_cell.html`'s single-PR outcome note. */
 
-.fleet-toolbar,
 #fleet-toolbar { margin: 1.5rem 0; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 
-.repo {
-  border: 1px solid var(--border); border-radius: 8px;
-  padding: 1rem 1.25rem; margin-bottom: 1.25rem;
-  background: var(--surface); color: var(--ink);
-}
-.repo-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.repo-header h2 { margin: 0; font-size: 1.1rem; color: var(--ink); }
-.pr-count { color: var(--ink-muted); font-size: 0.9rem; }
+.fleet-error { color: var(--unsafe); background: var(--unsafe-bg); padding: 0.5rem 0.75rem; border-radius: 6px; }
+.fleet-empty { color: var(--ink-muted); font-style: italic; }
 
-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
-.repo th, .repo td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border-hair); font-size: 0.9rem; color: var(--ink); }
-
-.badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
-a.badge { text-decoration: none; }
-.badge-audit-ok { background: var(--safe-bg); color: var(--safe); }
-.badge-audit-findings { background: var(--unsafe-bg); color: var(--unsafe); }
-.badge-audit-unknown { background: var(--caution-bg); color: var(--caution); }
-.badge-audit-off { background: var(--neutral-bg); color: var(--neutral); }
-.badge-audit-error { background: var(--unsafe-bg); color: var(--unsafe); }
-.badge-actions-off, .badge-actions-unconfigured { background: var(--neutral-bg); color: var(--neutral); }
-.badge-semver-patch { background: var(--safe-bg); color: var(--safe); }
-.badge-semver-minor { background: var(--info-bg); color: var(--info); }
-.badge-semver-major, .badge-semver-unknown { background: var(--unsafe-bg); color: var(--unsafe); }
-.badge-dependency-type { background: var(--dim-bg); color: var(--dim); }
-.badge-ci-green { background: var(--safe-bg); color: var(--safe); }
-.badge-ci-pending { background: var(--caution-bg); color: var(--caution); }
-.badge-ci-failing { background: var(--unsafe-bg); color: var(--unsafe); }
-.badge-ci-no_ci { background: var(--neutral-bg); color: var(--neutral); }
-.badge-bucket-safe { background: var(--safe-bg); color: var(--safe); }
-.badge-bucket-caution { background: var(--caution-bg); color: var(--caution); }
-.badge-bucket-unsafe { background: var(--unsafe-bg); color: var(--unsafe); }
-
-.stale-flag { color: var(--unsafe); font-weight: 600; font-size: 0.85rem; }
-.breakdown { margin: 0.4rem 0 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--ink-2); }
-.repo-error, .row-error, .fleet-error { color: var(--unsafe); background: var(--unsafe-bg); padding: 0.5rem 0.75rem; border-radius: 6px; }
-.repo-empty, .fleet-empty { color: var(--ink-muted); font-style: italic; }
-
-.action-form { display: inline-block; margin: 0 0.25rem 0.25rem 0; }
-.action-form button { font-size: 0.82rem; padding: 0.15rem 0.5rem; }
-.actions-disabled { color: var(--ink-muted); }
-.action-outcome { margin: 0 0 0.3rem 0; font-size: 0.82rem; }
 .action-ok { color: var(--safe); }
 .action-fail { color: var(--unsafe); }
-.action-skip { color: var(--caution); }
 
 .bulk-toolbar { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.5rem; font-size: 0.85rem; color: var(--ink-2); }
 .bulk-caution { color: var(--ink-muted); }
-
-.repo-header button { font-size: 0.82rem; padding: 0.2rem 0.6rem; }
-
-/* ══════════════════════════════════════════════════════════════════════
- * END LEGACY COMPAT
- * ══════════════════════════════════════════════════════════════════════ */

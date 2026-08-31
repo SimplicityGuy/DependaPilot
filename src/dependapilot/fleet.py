@@ -18,15 +18,24 @@ import asyncio
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Final
 
 from dependapilot.ci import CIStatus, CIVerdictService
 from dependapilot.discovery import DiscoveryService, PRRecord
 from dependapilot.github import GitHubClient
 from dependapilot.metadata import PRUpdateMetadata, fetch_pr_update_metadata
-from dependapilot.scoring import DEFAULT_WEIGHTS, SafetyScore, ScoreWeights, score_pr
+from dependapilot.scoring import DEFAULT_WEIGHTS, SafetyBucket, SafetyScore, ScoreWeights, score_pr
 
 _BUMP_TITLE_RE: Final = re.compile(r"\bfrom\s+(\S+)\s+to\s+(\S+)\b")
+
+
+def _parse_timestamp(value: str) -> datetime | None:
+    """Parse a GitHub ISO-8601 timestamp; `None` (never raises) if it doesn't parse."""
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,6 +68,27 @@ class PRRow:
     error: str | None = None
     """Set instead of the fields above when building this row failed."""
 
+    @property
+    def age_days(self) -> int | None:
+        """Whole days since this PR was opened (`pr.created_at`), or `None` if
+        that timestamp doesn't parse. Computed on access against wall-clock
+        time, same as `score_pr`'s own staleness check."""
+        opened = _parse_timestamp(self.pr.created_at)
+        if opened is None:
+            return None
+        return int((datetime.now(UTC) - opened).total_seconds() // 86400)
+
+    @property
+    def closes_open_alert(self) -> bool:
+        """Whether the safety breakdown recorded a positive `closes_open_alert`
+        signal -- i.e. this update is known to close an open Dependabot alert."""
+        if self.safety is None:
+            return False
+        return any(
+            signal.signal == "closes_open_alert" and signal.delta > 0
+            for signal in self.safety.breakdown
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class RepoView:
@@ -71,6 +101,56 @@ class RepoView:
     rows: tuple[PRRow, ...] = ()
     error: str | None = None
     """Set instead of `rows` when this repo's PR list couldn't be hydrated."""
+
+
+@dataclass(frozen=True, slots=True)
+class FleetTotals:
+    """Fleet-wide counts for the dashboard's stat strip, summed from `RepoView`s."""
+
+    repos: int
+    repos_reachable: int
+    repos_errored: int
+    open_prs: int
+    safe: int
+    caution: int
+    unsafe: int
+
+
+def compute_fleet_totals(views: Iterable[RepoView]) -> FleetTotals:
+    """Fleet-wide totals for the stat strip: repo reachability, open PR count,
+    and a bucket count per safety-scored row.
+
+    A repo-level error contributes to `repos_errored` but none of its rows
+    (there are none); a row-level error or an unscored row (safety still
+    pending) is excluded from the bucket counts rather than guessed into one.
+    """
+    views = tuple(views)
+    repos_errored = sum(1 for view in views if view.error is not None)
+    open_prs = sum(len(view.rows) for view in views if view.error is None)
+
+    safe = caution = unsafe = 0
+    for view in views:
+        if view.error is not None:
+            continue
+        for row in view.rows:
+            if row.error is not None or row.safety is None:
+                continue
+            if row.safety.bucket == SafetyBucket.SAFE:
+                safe += 1
+            elif row.safety.bucket == SafetyBucket.CAUTION:
+                caution += 1
+            else:
+                unsafe += 1
+
+    return FleetTotals(
+        repos=len(views),
+        repos_reachable=len(views) - repos_errored,
+        repos_errored=repos_errored,
+        open_prs=open_prs,
+        safe=safe,
+        caution=caution,
+        unsafe=unsafe,
+    )
 
 
 def parse_bump_title(title: str) -> tuple[str | None, str | None]:
