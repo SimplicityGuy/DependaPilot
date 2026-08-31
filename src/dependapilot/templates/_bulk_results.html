@@ -1,20 +1,66 @@
 <div id="bulk-panel">
   {% if unconfigured %}
-  <p class="fleet-error">Fleet service is not configured.</p>
+  <div class="bulkpanel">
+    <div class="bulkpanel-section">
+      <div class="error-banner">
+        <span class="error-banner-icon">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2L14.5 13.2H1.5L8 2z" stroke-linejoin="round"></path><path d="M8 6.5v3"></path><path d="M8 11.6v0.1"></path></svg>
+        </span>
+        <div class="error-banner-summary">Fleet service is not configured.</div>
+      </div>
+    </div>
+  </div>
   {% else %}
-  <div class="bulk-results">
-    <h3>{{ outcome.action|capitalize }} results</h3>
-    <ul>
-      {% for result in outcome.acted_on %}
-      <li class="{{ 'action-ok' if result.ok else 'action-fail' }}">
-        {{ result.repo }}#{{ result.number }}: {{ result.outcome.value }}{% if result.message %} &mdash; {{ result.message }}{% endif %}
-      </li>
-      {% endfor %}
-      {% for decision in outcome.skipped %}
-      <li class="action-skip">{{ decision.repo }}#{{ decision.number }}: skipped &mdash; {{ decision.reason }}</li>
-      {% endfor %}
-    </ul>
-    <button type="button" onclick="this.closest('#bulk-panel').replaceChildren()">Dismiss</button>
+  <div class="bulkpanel">
+    <div class="bulkpanel-section">
+      <div class="bulkpanel-title">{{ outcome.action|capitalize }} results</div>
+      <div class="bulkpanel-summary">
+        {{ outcome.acted_on|length }} action{{ "" if outcome.acted_on|length == 1 else "s" }} attempted &middot; {{ outcome.skipped|length }} skipped
+      </div>
+    </div>
+
+    <div class="bulkpanel-section">
+      <ul class="bulkpanel-list">
+        {% for result in outcome.acted_on %}
+        <li class="bulkpanel-row">
+          <span class="mono bulkpanel-repo">{{ result.repo }}<span class="bulkpanel-number">#{{ result.number }}</span></span>
+          {% if result.ok %}
+          <span class="ci-cell ci-cell-safe">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+            {{ result.outcome.value }}
+          </span>
+          {% elif result.outcome.value == "failed" %}
+          <span class="ci-cell ci-cell-unsafe">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+            {{ result.outcome.value }}
+          </span>
+          {% else %}
+          <span class="ci-cell ci-cell-caution">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.6"></circle><path d="M5.5 8h5"></path></svg>
+            {{ result.outcome.value }}
+          </span>
+          {% endif %}
+          {% if result.message %}
+          <span class="bulkpanel-reason">{{ result.message }}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+        {% for decision in outcome.skipped %}
+        <li class="bulkpanel-row">
+          <span class="mono bulkpanel-repo">{{ decision.repo }}<span class="bulkpanel-number">#{{ decision.number }}</span></span>
+          <span class="ci-cell ci-cell-caution">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.6"></circle><path d="M5.5 8h5"></path></svg>
+            skipped
+          </span>
+          <span class="bulkpanel-reason">{{ decision.reason }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="bulkpanel-section bulkpanel-footer">
+      <button type="button" class="btn" onclick="this.closest('#bulk-panel').replaceChildren()">Dismiss</button>
+    </div>
   </div>
   {% endif %}
 </div>

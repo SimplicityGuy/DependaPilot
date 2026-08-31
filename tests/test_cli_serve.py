@@ -144,6 +144,6 @@ async def test_serve_wires_real_services_honoring_config_flags(
             assert "not configured" not in response.text
             # acme/three opted out of audit -- its badge reads "off"; the
             # other two are audit-enabled and rendered (live, not a placeholder).
-            assert "badge-audit-off" in response.text
+            assert "audit off" in response.text
     finally:
         await client.aclose()

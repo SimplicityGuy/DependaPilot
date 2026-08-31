@@ -1,0 +1,459 @@
+/*
+ * DependaPilot "Mission Control" design system.
+ * Source of truth: docs/design-language.md — keep this file in sync with it.
+ */
+
+/* ── Tokens (verbatim from docs/design-language.md "Color tokens") ──────── */
+
+:root {
+  /* Surfaces (deep blue-charcoal, never pure black) */
+  --bg:            #0B1015;  /* page ground */
+  --bg-bar:        #0D131A;  /* top bar */
+  --surface:       #11181F;  /* cards, panels */
+  --surface-inset: #0E141B;  /* code/diff/ledger insets, list rows inside panels */
+  --surface-open:  #141C25;  /* expanded/selected row highlight */
+  --surface-ctl:   #161F28;  /* buttons, controls */
+  --surface-code:  #1B2530;  /* inline code chips */
+
+  /* Borders */
+  --border:        #1F2B37;  /* cards, dividers */
+  --border-hair:   #182230;  /* row hairlines */
+  --border-strong: #2B3A4A;  /* controls, modal edge */
+  --border-hover:  #3C4F63;  /* control hover */
+
+  /* Ink */
+  --ink:        #E7EDF3;
+  --ink-ctl:    #C7D2DE;  /* button labels, ledger totals */
+  --ink-2:      #98A6B7;  /* secondary */
+  --ink-muted:  #64758A;  /* labels, hints, deemphasized */
+  --ink-faint:  #3C4F63;  /* arrows, footer, near-invisible */
+
+  /* Accent — interactive only (links, active tab, primary CTA, focus) */
+  --accent:          #2DD4BF;
+  --accent-hover:    #43E0CC;
+  --accent-ink:      #5EEAD4;               /* accent-colored text on dark */
+  --on-accent:       #062A24;               /* text on solid accent */
+  --accent-bg:       rgba(45,212,191,0.10);
+  --accent-border:   rgba(45,212,191,0.30);
+
+  /* Status: safe / green (safety bucket SAFE, CI passing, diff +, compliant) */
+  --safe:        #6FDFA0;
+  --safe-solid:  #56D592;               /* meters, standalone icons */
+  --safe-bg:     rgba(86,213,146,0.12);
+  --safe-border: rgba(86,213,146,0.28);
+
+  /* Status: caution / amber (CAUTION, CI pending, MEDIUM, stale, findings) */
+  --caution:        #F2C14E;
+  --caution-bg:     rgba(242,193,78,0.11);
+  --caution-border: rgba(242,193,78,0.28);
+
+  /* Status: unsafe / red (UNSAFE, CI failing, HIGH, major, errors, diff −) */
+  --unsafe:        #FF8A80;
+  --unsafe-bg:     rgba(255,122,112,0.11);
+  --unsafe-border: rgba(255,122,112,0.30);
+  --error-bg:      rgba(255,122,112,0.08);  /* error banners */
+  --error-border:  rgba(255,122,112,0.25);
+
+  /* Status: info / blue (minor bumps, LOW severity) */
+  --info:        #8FBEFF;
+  --info-bg:     rgba(127,181,255,0.11);
+  --info-border: rgba(127,181,255,0.26);
+
+  /* Dimension: purple (dependency type chips, diff hunk headers) */
+  --dim:        #C9AFF8;
+  --dim-alt:    #C4A7F7;                 /* diff @@ hunk lines */
+  --dim-bg:     rgba(196,167,247,0.10);
+  --dim-border: rgba(196,167,247,0.24);
+
+  /* Neutral chips (audit off/unknown, merge-method notes) */
+  --neutral:        #93A1B3;
+  --neutral-bg:     rgba(147,161,179,0.10);
+  --neutral-border: rgba(147,161,179,0.22);
+
+  /* Fonts */
+  --font-sans: 'IBM Plex Sans', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: var(--font-sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+.mono { font-family: var(--font-mono); }
+
+.htmx-indicator {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator { opacity: 1; }
+
+/* ── Chrome: top bar, page, footer ────────────────────────────────────── */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 58px;
+  padding: 0 28px;
+  background: var(--bg-bar);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: 10px; }
+
+.wordmark {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.navtabs { display: flex; align-items: center; gap: 4px; }
+
+.navtab {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.navtab:hover { color: var(--ink); text-decoration: none; }
+
+.navtab-active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.navtab-active:hover { color: var(--accent-ink); }
+
+.topbar-spacer { flex-grow: 1; }
+
+.topbar-synced { font-size: 11px; color: var(--ink-muted); }
+
+.page {
+  padding: 22px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.subtitle { font-size: 12.5px; color: var(--ink-2); margin: 0; }
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px 24px 2px;
+}
+
+.footer .mono { font-size: 11px; color: var(--ink-faint); }
+
+/* ── Stat strip ───────────────────────────────────────────────────────── */
+
+.statstrip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stattile { padding: 14px 18px; }
+.stattile .th { margin-bottom: 8px; }
+.stattile-number { font-family: var(--font-mono); font-size: 26px; font-weight: 600; line-height: 1.1; }
+.stattile-sub { font-size: 11.5px; color: var(--ink-muted); margin-top: 5px; }
+
+/* ── Chips ────────────────────────────────────────────────────────────── */
+
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 999px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.03em; line-height: 1.7; white-space: nowrap;
+}
+.chip-safe    { color: var(--safe);    background: var(--safe-bg);    border: 1px solid var(--safe-border); }
+.chip-caution { color: var(--caution); background: var(--caution-bg); border: 1px solid var(--caution-border); }
+.chip-unsafe  { color: var(--unsafe);  background: var(--unsafe-bg);  border: 1px solid var(--unsafe-border); }
+.chip-info    { color: var(--info);    background: var(--info-bg);    border: 1px solid var(--info-border); }
+.chip-type    { color: var(--dim);     background: var(--dim-bg);     border: 1px solid var(--dim-border); }
+.chip-neutral { color: var(--neutral); background: var(--neutral-bg); border: 1px solid var(--neutral-border); }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 13px; border-radius: 6px;
+  border: 1px solid var(--border-strong); background: var(--surface-ctl);
+  color: var(--ink-ctl); font: 500 12.5px/1.5 var(--font-sans); white-space: nowrap;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--border-hover); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-row { padding: 3px 10px; font-size: 11.5px; border-radius: 5px; }  /* in-table */
+.btn-disabled, .btn:disabled { opacity: 0.35; cursor: default; }
+
+/* ── Cards, column headers, PR grid ───────────────────────────────────── */
+
+.th {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-muted);
+}
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+
+.card-header {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 13px 20px; border-bottom: 1px solid var(--border);
+}
+
+.prgrid {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 88px 128px 100px 170px 92px 232px;
+  column-gap: 12px;
+  align-items: center;
+}
+/* PR# · Dependency · Bump · Type · CI · Safety · Age · Actions */
+
+.prgrid-row { padding: 11px 20px; border-bottom: 1px solid var(--border-hair); }
+.prgrid-row.prgrid-row-last { border-bottom: none; }
+
+/* A PR row is a <details><summary class="prgrid prgrid-row"> so the whole row
+   toggles the score-breakdown ledger; strip the native disclosure marker and
+   let `[open]` drive the expanded-row highlight instead of a JS-toggled class. */
+summary.prgrid-row { list-style: none; cursor: pointer; }
+summary.prgrid-row::-webkit-details-marker { display: none; }
+details[open] > summary.prgrid-row { background: var(--surface-open); border-bottom: none; }
+.ledger-wrap {
+  padding: 4px 20px 16px 90px; background: var(--surface-open);
+  border-bottom: 1px solid var(--border-hair);
+}
+.ledger-wrap.prgrid-row-last { border-bottom: none; }
+
+.prgrid.th { padding: 9px 20px; border-bottom: 1px solid var(--border); }
+
+/* ── CI verdict cell ──────────────────────────────────────────────────── */
+
+.ci-cell { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; }
+.ci-cell-safe    { color: var(--safe); }
+.ci-cell-caution { color: var(--caution); }
+.ci-cell-unsafe  { color: var(--unsafe); }
+.ci-cell-neutral { color: var(--neutral); }
+
+/* ── Safety cell / meter ──────────────────────────────────────────────── */
+
+.safety-cell { display: inline-flex; align-items: center; gap: 8px; }
+.safety-score { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; }
+.chevron { color: var(--ink-muted); transition: transform 120ms ease; }
+details[open] .chevron { transform: rotate(180deg); }
+
+.meter { width: 40px; height: 4px; border-radius: 2px; background: var(--border); display: inline-block; }
+.meter-fill { display: block; height: 4px; border-radius: 2px; }
+.meter-fill-safe    { background: var(--safe-solid); }
+.meter-fill-caution { background: var(--caution); }
+.meter-fill-unsafe  { background: var(--unsafe); }
+
+/* ── Score-breakdown ledger ───────────────────────────────────────────── */
+
+.ledger {
+  background: var(--surface-inset); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 16px; max-width: 620px;
+}
+.ledger-rows { display: flex; flex-direction: column; gap: 6px; }
+.ledger-row { display: flex; align-items: baseline; gap: 12px; }
+.ledger-signal { font-family: var(--font-mono); width: 118px; font-size: 11.5px; color: var(--ink-2); }
+.ledger-delta { font-family: var(--font-mono); width: 36px; font-size: 11.5px; font-weight: 600; text-align: right; }
+.ledger-delta-positive { color: var(--safe); }
+.ledger-delta-negative { color: var(--unsafe); }
+.ledger-delta-zero { color: var(--ink-muted); }
+.ledger-reason { font-size: 11.5px; color: var(--ink-muted); }
+.ledger-total {
+  border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px;
+  align-items: center;
+}
+.ledger-total .ledger-signal { font-weight: 600; color: var(--ink-ctl); }
+.ledger-total .ledger-delta { font-weight: 700; color: var(--ink); }
+
+/* ── Version transitions ──────────────────────────────────────────────── */
+
+.version-old { color: var(--ink-muted); }
+.version-arrow { color: var(--ink-faint); }
+.version-new { color: var(--ink-ctl); }
+
+/* ── Diff block ───────────────────────────────────────────────────────── */
+
+.diffblock {
+  background: var(--surface-inset); border: 1px solid var(--border); border-radius: 8px;
+  overflow-x: auto; padding: 10px 0;
+}
+.diffline {
+  display: block; white-space: pre;
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.75;
+  padding: 0 14px;
+  color: var(--ink-2);
+}
+.diffline-add  { color: var(--safe);   background: rgba(86,213,146,0.09); }
+.diffline-del  { color: var(--unsafe); background: rgba(255,122,112,0.09); }
+.diffline-hunk { color: var(--dim-alt); }
+
+/* ── Inline code ──────────────────────────────────────────────────────── */
+
+.code-chip {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--ink-ctl);
+  background: var(--surface-code); border: 1px solid var(--border-strong);
+  border-radius: 4px; padding: 1px 6px; white-space: nowrap;
+}
+
+/* ── Error banner ─────────────────────────────────────────────────────── */
+
+.error-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 14px; border-radius: 8px;
+  background: var(--error-bg); border: 1px solid var(--error-border);
+}
+.error-banner-icon { color: var(--unsafe); margin-top: 1px; }
+.error-banner-summary { font-size: 12.5px; font-weight: 600; color: var(--unsafe); }
+.error-banner-detail { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); margin-top: 3px; }
+
+/* ── Empty state ──────────────────────────────────────────────────────── */
+
+.emptystate { display: flex; align-items: center; gap: 9px; color: var(--ink-muted); font-size: 12.5px; }
+.emptystate-safe { color: var(--safe-solid); }
+
+/* ── Audit view ───────────────────────────────────────────────────────── */
+
+.auditlist { display: flex; flex-direction: column; gap: 14px; }
+
+.spacer { flex-grow: 1; }
+
+.reposlug { font-size: 13.5px; font-weight: 600; }
+.reposlug-owner { color: var(--ink-muted); }
+
+.chip-note { font-size: 12.5px; color: var(--ink-muted); }
+
+.findinglist { display: flex; flex-direction: column; }
+.findingrow {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 20px; border-bottom: 1px solid var(--border-hair);
+}
+.findingrow:last-child { border-bottom: none; }
+.findingrow .chip { margin-top: 1px; flex-shrink: 0; }
+.findingrow-text { font-size: 13px; }
+.findingrow-hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-muted); }
+
+.audit-diff { padding: 16px 20px; }
+.audit-diff > summary { margin-bottom: 10px; cursor: pointer; }
+
+.fixprrow { display: flex; align-items: center; gap: 12px; padding: 14px 20px; flex-wrap: wrap; }
+.fixprrow-existing { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+.fixprrow-existing svg { color: var(--info); }
+.fixprrow-error { font-size: 12.5px; color: var(--unsafe); }
+
+/* ── Bulk preview panel ───────────────────────────────────────────────── */
+
+.bulkpanel {
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+.bulkpanel-section { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.bulkpanel-section:last-child { border-bottom: none; }
+.bulkpanel-title { font-size: 15px; font-weight: 600; }
+.bulkpanel-summary { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+.bulkpanel-bucket-word.is-safe { color: var(--safe); }
+.bulkpanel-bucket-word.is-caution { color: var(--caution); }
+.bulkpanel-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bulkpanel-row {
+  background: var(--surface-inset); border-radius: 6px; padding: 8px 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.bulkpanel-row-plain { display: flex; align-items: center; gap: 12px; }
+.bulkpanel-repo { font-size: 12px; color: var(--ink-muted); min-width: 150px; flex-shrink: 0; }
+.bulkpanel-number { color: var(--accent); }
+.bulkpanel-dep { font-size: 12.5px; flex: 1 1 auto; min-width: 0; }
+.bulkpanel-version { font-size: 11.5px; margin-left: 8px; }
+.bulkpanel-reason { font-size: 12px; color: var(--ink-2); flex: 1 1 auto; min-width: 0; }
+.bulkpanel-footer { display: flex; align-items: center; gap: 12px; }
+.bulkpanel-footer-spacer { flex-grow: 1; }
+.bulkpanel-note { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
+
+/* ── Fleet dashboard: repo cards, PR grid rows ───────────────────────────── */
+
+.repo-slug { font-size: 13.5px; font-weight: 600; }
+.repo-slug-owner { color: var(--ink-muted); }
+
+.repo-pr-count { font-size: 12px; color: var(--ink-muted); }
+
+/* .spacer is defined once, above, under "Audit view" -- shared here too. */
+
+.pr-number { font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; }
+
+.dep-name { font-size: 13px; font-weight: 500; }
+.dep-version { font-family: var(--font-mono); font-size: 11.5px; margin-top: 2px; }
+
+.age-cell { display: inline-flex; align-items: center; gap: 6px; }
+.age-value { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+
+.actions-cell { display: inline-flex; gap: 6px; }
+.actions-cell-off { color: var(--ink-muted); }
+
+.action-note { font-size: 12px; margin: 0 0 6px 0; }
+
+.row-error { color: var(--unsafe); font-size: 12.5px; }
+
+/* ── Toggle ───────────────────────────────────────────────────────────── */
+
+.toggle-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
+/* The real checkbox stays in the DOM (and keeps its `.bulk-caution-toggle`
+   hook for the existing hx-vals JS) but is visually replaced by the `.toggle`
+   track + knob rendered right after it; `:checked` drives the on/off look. */
+.toggle-input {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.toggle {
+  display: inline-block; width: 26px; height: 15px; border-radius: 999px;
+  background: var(--border); border: 1px solid var(--border-strong); position: relative;
+}
+.toggle-knob {
+  position: absolute; top: 1px; left: 1px; width: 11px; height: 11px;
+  border-radius: 999px; background: var(--ink-muted); transition: left 120ms ease, background 120ms ease;
+}
+.toggle-input:checked ~ .toggle { background: var(--accent-bg); }
+.toggle-input:checked ~ .toggle .toggle-knob { left: 12px; background: var(--accent); }
+
+/* ── Shared toolbar + loading-placeholder styles ─────────────────────────
+ * A handful of small pre-redesign rules survive because real templates
+ * still reference them directly, not because any bead is still pending:
+ * `#fleet-toolbar` and the fleet-wide `.bulk-toolbar` / `.bulk-caution`
+ * pair are index.html's own markup; `.fleet-error` / `.fleet-empty` back
+ * `_audit_list.html`'s unconfigured/empty states plus the pre-htmx-swap
+ * loading placeholders in index.html and audit.html; `.action-ok` /
+ * `.action-fail` color `_actions_cell.html`'s single-PR outcome note. */
+
+#fleet-toolbar { margin: 1.5rem 0; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+
+.fleet-error { color: var(--unsafe); background: var(--unsafe-bg); padding: 0.5rem 0.75rem; border-radius: 6px; }
+.fleet-empty { color: var(--ink-muted); font-style: italic; }
+
+.action-ok { color: var(--safe); }
+.action-fail { color: var(--unsafe); }
+
+.bulk-toolbar { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.5rem; font-size: 0.85rem; color: var(--ink-2); }
+.bulk-caution { color: var(--ink-muted); }

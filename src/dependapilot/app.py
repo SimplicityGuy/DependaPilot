@@ -23,7 +23,7 @@ from dependapilot.bulk import execute_bulk, parse_selection, preview_bulk
 from dependapilot.ci import CIVerdictService
 from dependapilot.config import FleetConfig
 from dependapilot.discovery import DiscoveryService
-from dependapilot.fleet import FleetService
+from dependapilot.fleet import FleetService, compute_fleet_totals
 from dependapilot.github import GitHubClient
 from dependapilot.github.errors import GitHubAPIError, github_error_message
 from dependapilot.scoring import SafetyBucket
@@ -98,6 +98,7 @@ def create_app(
                 "unconfigured": False,
                 "audit_badges": audit_badges,
                 "actions_configured": actions is not None,
+                "totals": compute_fleet_totals(repos),
             },
         )
 

@@ -127,8 +127,8 @@ class TestAuditListFragment:
         high_pos = response.text.index("MISSING_CONFIG")
         medium_pos = response.text.index("MISSING_ECOSYSTEM")
         assert high_pos < medium_pos
-        assert "badge-severity-high" in response.text
-        assert "badge-severity-medium" in response.text
+        assert "chip-unsafe" in response.text
+        assert "chip-caution" in response.text
 
     def test_unknown_scope_findings_render_distinctly_with_remediation_hint(self) -> None:
         findings = (
@@ -145,8 +145,8 @@ class TestAuditListFragment:
         response = client.get("/audit/list")
 
         assert response.status_code == 200
-        assert "badge-severity-info" in response.text
-        assert "remediation-hint" in response.text
+        assert "chip-neutral" in response.text
+        assert "findingrow-hint" in response.text
         assert "Settings" in response.text
 
     def test_diff_lines_render_with_add_and_del_markers(self) -> None:
@@ -156,8 +156,8 @@ class TestAuditListFragment:
 
         response = client.get("/audit/list")
 
-        assert "diff-add" in response.text
-        assert "diff-del" in response.text
+        assert "diffline-add" in response.text
+        assert "diffline-del" in response.text
         assert ">-old<" in response.text or "-old" in response.text
         assert "+new" in response.text
 
