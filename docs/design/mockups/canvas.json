@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Fleet dashboard", "x": 0, "y": 0, "w": 1440, "h": 1500 },
+    { "file": "Audit.dc.html", "title": "Audit view", "x": 1560, "y": 0, "w": 1440, "h": 1440 },
+    { "file": "BulkPreview.dc.html", "title": "Bulk merge preview", "x": 0, "y": 1640, "w": 780, "h": 720 }
+  ],
+  "annotations": [
+    { "id": "direction-note", "x": 860, "y": 1660, "w": 300, "text": "Mission control direction: IBM Plex Sans for UI, JetBrains Mono for anything data (versions, scores, repo slugs). One teal accent for interactive things; green/amber/red reserved strictly for safety + CI status.\n\nAll PR data here is sample content shaped like the real scoring rubric (base 60, CI hard cap, real signal names)." }
+  ],
+  "launch": { "view": "canvas" }
+}

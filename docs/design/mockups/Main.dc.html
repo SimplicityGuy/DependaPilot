@@ -1,0 +1,375 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+  <style>
+    body { margin: 0; background: #0B1015; font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', system-ui, sans-serif; color: #E7EDF3; -webkit-font-smoothing: antialiased; }
+    a { color: #2DD4BF; text-decoration: none; }
+    a:hover { color: #5EEAD4; text-decoration: underline; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; line-height: 1.7; white-space: nowrap; }
+    .chip-safe { color: #6FDFA0; background: rgba(86,213,146,0.12); border: 1px solid rgba(86,213,146,0.28); }
+    .chip-caution { color: #F2C14E; background: rgba(242,193,78,0.11); border: 1px solid rgba(242,193,78,0.28); }
+    .chip-unsafe { color: #FF8A80; background: rgba(255,122,112,0.11); border: 1px solid rgba(255,122,112,0.30); }
+    .chip-info { color: #8FBEFF; background: rgba(127,181,255,0.11); border: 1px solid rgba(127,181,255,0.26); }
+    .chip-type { color: #C9AFF8; background: rgba(196,167,247,0.10); border: 1px solid rgba(196,167,247,0.24); }
+    .chip-neutral { color: #93A1B3; background: rgba(147,161,179,0.10); border: 1px solid rgba(147,161,179,0.22); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px; border-radius: 6px; border: 1px solid #2B3A4A; background: #161F28; color: #C7D2DE; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 12.5px; font-weight: 500; line-height: 1.5; white-space: nowrap; cursor: pointer; }
+    .btn:hover { border-color: #3C4F63; }
+    .btn-primary { background: #2DD4BF; border: 1px solid #2DD4BF; color: #062A24; font-weight: 600; }
+    .btn-primary:hover { background: #43E0CC; border-color: #43E0CC; }
+    .btn-row { padding: 3px 10px; font-size: 11.5px; border-radius: 5px; }
+    .btn-disabled { opacity: 0.35; cursor: default; }
+    .th { font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: #64758A; }
+    .card { background: #11181F; border: 1px solid #1F2B37; border-radius: 10px; }
+    .prgrid { display: grid; grid-template-columns: 58px minmax(0, 1fr) 88px 128px 100px 170px 92px 232px; gap: 0px 12px; align-items: center; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 1500px; background: #0B1015; box-sizing: border-box; display: flex; flex-direction: column">
+
+  <!-- Top bar -->
+  <div style="display: flex; align-items: center; gap: 24px; height: 58px; padding: 0 28px; border-bottom: 1px solid #1F2B37; background: #0D131A; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M1.8 8.6l12.4-6-4.6 12-2.3-4.4L1.8 8.6z" fill="#2DD4BF"></path><path d="M7.3 10.2l6.9-7.6" stroke="#0B1015" stroke-width="0.9"></path></svg>
+      <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.01em">DependaPilot</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px">
+      <span style="padding: 5px 14px; border-radius: 6px; background: rgba(45,212,191,0.10); border: 1px solid rgba(45,212,191,0.30); color: #5EEAD4; font-size: 13px; font-weight: 600">Fleet</span>
+      <a href="#" style="padding: 5px 14px; border-radius: 6px; color: #98A6B7; font-size: 13px; font-weight: 500">Audit</a>
+    </div>
+    <div style="flex-grow: 1"></div>
+    <span class="mono" style="font-size: 11px; color: #64758A">synced 12 s ago</span>
+    <button class="btn" type="button">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8A5.2 5.2 0 1 1 11.6 4.2"></path><path d="M13.4 1.8v3h-3"></path></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div style="padding: 22px 28px 0 28px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+
+    <!-- Stat strip -->
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px">
+      <div class="card" style="padding: 14px 18px">
+        <div class="th" style="margin-bottom: 8px">Repos</div>
+        <div class="mono" style="font-size: 26px; font-weight: 600; line-height: 1.1">4</div>
+        <div style="font-size: 11.5px; color: #64758A; margin-top: 5px">3 reachable · 1 error</div>
+      </div>
+      <div class="card" style="padding: 14px 18px">
+        <div class="th" style="margin-bottom: 8px">Open PRs</div>
+        <div class="mono" style="font-size: 26px; font-weight: 600; line-height: 1.1">7</div>
+        <div style="font-size: 11.5px; color: #64758A; margin-top: 5px">all from Dependabot</div>
+      </div>
+      <div class="card" style="padding: 14px 18px">
+        <div class="th" style="margin-bottom: 8px; color: #6FDFA0">Safe</div>
+        <div class="mono" style="font-size: 26px; font-weight: 600; line-height: 1.1; color: #6FDFA0">4</div>
+        <div style="font-size: 11.5px; color: #64758A; margin-top: 5px">ready to merge</div>
+      </div>
+      <div class="card" style="padding: 14px 18px">
+        <div class="th" style="margin-bottom: 8px; color: #F2C14E">Caution</div>
+        <div class="mono" style="font-size: 26px; font-weight: 600; line-height: 1.1; color: #F2C14E">2</div>
+        <div style="font-size: 11.5px; color: #64758A; margin-top: 5px">need a human look</div>
+      </div>
+      <div class="card" style="padding: 14px 18px">
+        <div class="th" style="margin-bottom: 8px; color: #FF8A80">Unsafe</div>
+        <div class="mono" style="font-size: 26px; font-weight: 600; line-height: 1.1; color: #FF8A80">1</div>
+        <div style="font-size: 11.5px; color: #64758A; margin-top: 5px">blocked by CI</div>
+      </div>
+    </div>
+
+    <!-- Fleet bulk toolbar -->
+    <div style="display: flex; align-items: center; gap: 12px">
+      <label style="display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #98A6B7">
+        <span style="display: inline-block; width: 26px; height: 15px; border-radius: 999px; background: #1F2B37; border: 1px solid #2B3A4A; position: relative"><span style="position: absolute; top: 1px; left: 1px; width: 11px; height: 11px; border-radius: 999px; background: #64758A"></span></span>
+        include caution
+      </label>
+      <button class="btn" type="button">Approve all eligible</button>
+      <button class="btn btn-primary" type="button">Merge all eligible</button>
+      <span class="mono" style="font-size: 11px; color: #64758A">safe + CI green · fleet-wide · previews before anything runs</span>
+    </div>
+
+    <!-- Repo: DependaPilot -->
+    <section class="card">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-bottom: 1px solid #1F2B37">
+        <span class="mono" style="font-size: 13.5px; font-weight: 600"><span style="color: #64758A">SimplicityGuy/</span>DependaPilot</span>
+        <a href="#" class="chip chip-safe">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.8l4.8 1.7v3.7c0 3-2 5.5-4.8 6.7-2.8-1.2-4.8-3.7-4.8-6.7V3.5L8 1.8z"></path><path d="M5.7 8.1l1.6 1.6 3-3.2"></path></svg>
+          audit ok
+        </a>
+        <span style="font-size: 12px; color: #64758A">4 open PRs</span>
+        <div style="flex-grow: 1"></div>
+        <button class="btn btn-row" type="button">Approve eligible</button>
+        <button class="btn btn-row" type="button">Merge eligible</button>
+      </div>
+
+      <div class="prgrid th" style="padding: 9px 20px; border-bottom: 1px solid #1F2B37">
+        <span>PR</span><span>Dependency</span><span>Bump</span><span>Type</span><span>CI</span><span>Safety</span><span>Age</span><span>Actions</span>
+      </div>
+
+      <!-- row: ruff / safe 100 -->
+      <div class="prgrid" style="padding: 11px 20px; border-bottom: 1px solid #182230">
+        <a href="#" class="mono" style="font-size: 12.5px; font-weight: 500">#142</a>
+        <div>
+          <div style="font-size: 13px; font-weight: 500">ruff</div>
+          <div class="mono" style="font-size: 11.5px; color: #64758A; margin-top: 2px">0.14.1 <span style="color: #3C4F63">→</span> <span style="color: #C7D2DE">0.14.2</span></div>
+        </div>
+        <span><span class="chip chip-safe">patch</span></span>
+        <span><span class="chip chip-type">direct:dev</span></span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #6FDFA0; font-size: 12px; font-weight: 500">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+          passing
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 8px">
+          <span class="chip chip-safe">SAFE</span>
+          <span class="mono" style="font-size: 12.5px; font-weight: 600">100</span>
+          <span style="width: 40px; height: 4px; border-radius: 2px; background: #1F2B37; display: inline-block"><span style="display: block; width: 100%; height: 4px; border-radius: 2px; background: #56D592"></span></span>
+        </span>
+        <span class="mono" style="font-size: 12px; color: #98A6B7">2d</span>
+        <span style="display: inline-flex; gap: 6px">
+          <button class="btn btn-row" type="button">Approve</button>
+          <button class="btn btn-row btn-primary" type="button">Merge</button>
+          <button class="btn btn-row" type="button">Rebase</button>
+        </span>
+      </div>
+
+      <!-- row: fastapi / safe 80, expanded -->
+      <div class="prgrid" style="padding: 11px 20px; background: #141C25">
+        <a href="#" class="mono" style="font-size: 12.5px; font-weight: 500">#139</a>
+        <div>
+          <div style="font-size: 13px; font-weight: 500">fastapi</div>
+          <div class="mono" style="font-size: 11.5px; color: #64758A; margin-top: 2px">0.115.6 <span style="color: #3C4F63">→</span> <span style="color: #C7D2DE">0.116.0</span></div>
+        </div>
+        <span><span class="chip chip-info">minor</span></span>
+        <span><span class="chip chip-type">direct:prod</span></span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #6FDFA0; font-size: 12px; font-weight: 500">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+          passing
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 8px">
+          <span class="chip chip-safe">SAFE</span>
+          <span class="mono" style="font-size: 12.5px; font-weight: 600">80</span>
+          <span style="width: 40px; height: 4px; border-radius: 2px; background: #1F2B37; display: inline-block"><span style="display: block; width: 80%; height: 4px; border-radius: 2px; background: #56D592"></span></span>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#64758A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4-4 4 4"></path></svg>
+        </span>
+        <span class="mono" style="font-size: 12px; color: #98A6B7">5d</span>
+        <span style="display: inline-flex; gap: 6px">
+          <button class="btn btn-row" type="button">Approve</button>
+          <button class="btn btn-row btn-primary" type="button">Merge</button>
+          <button class="btn btn-row" type="button">Rebase</button>
+        </span>
+      </div>
+
+      <!-- expanded score breakdown for #139 -->
+      <div style="padding: 4px 20px 16px 90px; background: #141C25; border-bottom: 1px solid #182230">
+        <div style="background: #0E141B; border: 1px solid #1F2B37; border-radius: 8px; padding: 12px 16px; max-width: 620px">
+          <div class="th" style="margin-bottom: 10px">Score breakdown</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="display: flex; align-items: baseline; gap: 12px"><span class="mono" style="width: 118px; font-size: 11.5px; color: #98A6B7">base</span><span class="mono" style="width: 36px; font-size: 11.5px; font-weight: 600; text-align: right; color: #64758A">60</span><span style="font-size: 11.5px; color: #64758A">every PR starts here</span></div>
+            <div style="display: flex; align-items: baseline; gap: 12px"><span class="mono" style="width: 118px; font-size: 11.5px; color: #98A6B7">ci</span><span class="mono" style="width: 36px; font-size: 11.5px; font-weight: 600; text-align: right; color: #6FDFA0">+10</span><span style="font-size: 11.5px; color: #64758A">CI is green</span></div>
+            <div style="display: flex; align-items: baseline; gap: 12px"><span class="mono" style="width: 118px; font-size: 11.5px; color: #98A6B7">semver</span><span class="mono" style="width: 36px; font-size: 11.5px; font-weight: 600; text-align: right; color: #64758A">+0</span><span style="font-size: 11.5px; color: #64758A">minor update</span></div>
+            <div style="display: flex; align-items: baseline; gap: 12px"><span class="mono" style="width: 118px; font-size: 11.5px; color: #98A6B7">dependency_type</span><span class="mono" style="width: 36px; font-size: 11.5px; font-weight: 600; text-align: right; color: #64758A">+0</span><span style="font-size: 11.5px; color: #64758A">direct production dependency</span></div>
+            <div style="display: flex; align-items: baseline; gap: 12px"><span class="mono" style="width: 118px; font-size: 11.5px; color: #98A6B7">mergeable</span><span class="mono" style="width: 36px; font-size: 11.5px; font-weight: 600; text-align: right; color: #6FDFA0">+10</span><span style="font-size: 11.5px; color: #64758A">mergeable, clean</span></div>
+            <div style="display: flex; align-items: center; gap: 12px; border-top: 1px solid #1F2B37; padding-top: 8px; margin-top: 2px"><span class="mono" style="width: 118px; font-size: 11.5px; font-weight: 600; color: #C7D2DE">total</span><span class="mono" style="width: 36px; font-size: 11.5px; font-weight: 700; text-align: right; color: #E7EDF3">80</span><span class="chip chip-safe">SAFE</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- row: pydantic / unsafe, stale -->
+      <div class="prgrid" style="padding: 11px 20px; border-bottom: 1px solid #182230">
+        <a href="#" class="mono" style="font-size: 12.5px; font-weight: 500">#131</a>
+        <div>
+          <div style="font-size: 13px; font-weight: 500">pydantic</div>
+          <div class="mono" style="font-size: 11.5px; color: #64758A; margin-top: 2px">2.11.9 <span style="color: #3C4F63">→</span> <span style="color: #C7D2DE">3.0.0</span></div>
+        </div>
+        <span><span class="chip chip-unsafe">major</span></span>
+        <span><span class="chip chip-type">direct:prod</span></span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #FF8A80; font-size: 12px; font-weight: 500">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+          failing
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 8px">
+          <span class="chip chip-unsafe">UNSAFE</span>
+          <span class="mono" style="font-size: 12.5px; font-weight: 600">0</span>
+          <span style="width: 40px; height: 4px; border-radius: 2px; background: #1F2B37; display: inline-block"></span>
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><span class="mono" style="font-size: 12px; color: #98A6B7">34d</span><span class="chip chip-caution">stale</span></span>
+        <span style="display: inline-flex; gap: 6px">
+          <button class="btn btn-row" type="button">Approve</button>
+          <button class="btn btn-row btn-disabled" type="button" title="CI must be green to merge">Merge</button>
+          <button class="btn btn-row" type="button">Rebase</button>
+        </span>
+      </div>
+
+      <!-- row: certifi / caution -->
+      <div class="prgrid" style="padding: 11px 20px">
+        <a href="#" class="mono" style="font-size: 12.5px; font-weight: 500">#127</a>
+        <div>
+          <div style="font-size: 13px; font-weight: 500">certifi</div>
+          <div class="mono" style="font-size: 11.5px; color: #64758A; margin-top: 2px">2025.10.5 <span style="color: #3C4F63">→</span> <span style="color: #C7D2DE">2026.1.4</span></div>
+        </div>
+        <span><span class="chip chip-safe">patch</span></span>
+        <span><span class="chip chip-type">indirect</span></span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #F2C14E; font-size: 12px; font-weight: 500">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.6"></circle><path d="M8 5.2v3l2 1.2"></path></svg>
+          pending
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 8px">
+          <span class="chip chip-caution">CAUTION</span>
+          <span class="mono" style="font-size: 12.5px; font-weight: 600">50</span>
+          <span style="width: 40px; height: 4px; border-radius: 2px; background: #1F2B37; display: inline-block"><span style="display: block; width: 50%; height: 4px; border-radius: 2px; background: #F2C14E"></span></span>
+        </span>
+        <span class="mono" style="font-size: 12px; color: #98A6B7">1d</span>
+        <span style="display: inline-flex; gap: 6px">
+          <button class="btn btn-row" type="button">Approve</button>
+          <button class="btn btn-row btn-disabled" type="button" title="CI must be green to merge">Merge</button>
+          <button class="btn btn-row" type="button">Rebase</button>
+        </span>
+      </div>
+    </section>
+
+    <!-- Repo: vinyldigger -->
+    <section class="card">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-bottom: 1px solid #1F2B37">
+        <span class="mono" style="font-size: 13.5px; font-weight: 600"><span style="color: #64758A">SimplicityGuy/</span>vinyldigger</span>
+        <a href="#" class="chip chip-caution">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.8l4.8 1.7v3.7c0 3-2 5.5-4.8 6.7-2.8-1.2-4.8-3.7-4.8-6.7V3.5L8 1.8z"></path><path d="M8 5.4v3"></path><path d="M8 10.6v0.1"></path></svg>
+          audit · 2 findings
+        </a>
+        <span class="chip chip-neutral">merges via squash</span>
+        <span style="font-size: 12px; color: #64758A">3 open PRs</span>
+        <div style="flex-grow: 1"></div>
+        <button class="btn btn-row" type="button">Approve eligible</button>
+        <button class="btn btn-row" type="button">Merge eligible</button>
+      </div>
+
+      <div class="prgrid th" style="padding: 9px 20px; border-bottom: 1px solid #1F2B37">
+        <span>PR</span><span>Dependency</span><span>Bump</span><span>Type</span><span>CI</span><span>Safety</span><span>Age</span><span>Actions</span>
+      </div>
+
+      <!-- row: httpx / safe 80 -->
+      <div class="prgrid" style="padding: 11px 20px; border-bottom: 1px solid #182230">
+        <a href="#" class="mono" style="font-size: 12.5px; font-weight: 500">#88</a>
+        <div>
+          <div style="font-size: 13px; font-weight: 500">httpx</div>
+          <div class="mono" style="font-size: 11.5px; color: #64758A; margin-top: 2px">0.27.2 <span style="color: #3C4F63">→</span> <span style="color: #C7D2DE">0.28.1</span></div>
+        </div>
+        <span><span class="chip chip-info">minor</span></span>
+        <span><span class="chip chip-type">direct:prod</span></span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #6FDFA0; font-size: 12px; font-weight: 500">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+          passing
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 8px">
+          <span class="chip chip-safe">SAFE</span>
+          <span class="mono" style="font-size: 12.5px; font-weight: 600">80</span>
+          <span style="width: 40px; height: 4px; border-radius: 2px; background: #1F2B37; display: inline-block"><span style="display: block; width: 80%; height: 4px; border-radius: 2px; background: #56D592"></span></span>
+        </span>
+        <span class="mono" style="font-size: 12px; color: #98A6B7">3d</span>
+        <span style="display: inline-flex; gap: 6px">
+          <button class="btn btn-row" type="button">Approve</button>
+          <button class="btn btn-row btn-primary" type="button">Merge</button>
+          <button class="btn btn-row" type="button">Rebase</button>
+        </span>
+      </div>
+
+      <!-- row: urllib3 / caution, closes alert -->
+      <div class="prgrid" style="padding: 11px 20px; border-bottom: 1px solid #182230">
+        <a href="#" class="mono" style="font-size: 12.5px; font-weight: 500">#86</a>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 13px; font-weight: 500">urllib3</span><span class="chip chip-safe">closes alert</span></div>
+          <div class="mono" style="font-size: 11.5px; color: #64758A; margin-top: 2px">2.2.3 <span style="color: #3C4F63">→</span> <span style="color: #C7D2DE">2.5.0</span></div>
+        </div>
+        <span><span class="chip chip-info">minor</span></span>
+        <span><span class="chip chip-type">indirect</span></span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #6FDFA0; font-size: 12px; font-weight: 500">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+          passing
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 8px">
+          <span class="chip chip-caution">CAUTION</span>
+          <span class="mono" style="font-size: 12.5px; font-weight: 600">75</span>
+          <span style="width: 40px; height: 4px; border-radius: 2px; background: #1F2B37; display: inline-block"><span style="display: block; width: 75%; height: 4px; border-radius: 2px; background: #F2C14E"></span></span>
+        </span>
+        <span class="mono" style="font-size: 12px; color: #98A6B7">4d</span>
+        <span style="display: inline-flex; gap: 6px">
+          <button class="btn btn-row" type="button">Approve</button>
+          <button class="btn btn-row btn-primary" type="button">Merge</button>
+          <button class="btn btn-row" type="button">Rebase</button>
+        </span>
+      </div>
+
+      <!-- row: mypy / safe 90 -->
+      <div class="prgrid" style="padding: 11px 20px">
+        <a href="#" class="mono" style="font-size: 12.5px; font-weight: 500">#79</a>
+        <div>
+          <div style="font-size: 13px; font-weight: 500">mypy</div>
+          <div class="mono" style="font-size: 11.5px; color: #64758A; margin-top: 2px">1.13.0 <span style="color: #3C4F63">→</span> <span style="color: #C7D2DE">1.15.0</span></div>
+        </div>
+        <span><span class="chip chip-info">minor</span></span>
+        <span><span class="chip chip-type">direct:dev</span></span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: #6FDFA0; font-size: 12px; font-weight: 500">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+          passing
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 8px">
+          <span class="chip chip-safe">SAFE</span>
+          <span class="mono" style="font-size: 12.5px; font-weight: 600">90</span>
+          <span style="width: 40px; height: 4px; border-radius: 2px; background: #1F2B37; display: inline-block"><span style="display: block; width: 90%; height: 4px; border-radius: 2px; background: #56D592"></span></span>
+        </span>
+        <span class="mono" style="font-size: 12px; color: #98A6B7">6d</span>
+        <span style="display: inline-flex; gap: 6px">
+          <button class="btn btn-row" type="button">Approve</button>
+          <button class="btn btn-row btn-primary" type="button">Merge</button>
+          <button class="btn btn-row" type="button">Rebase</button>
+        </span>
+      </div>
+    </section>
+
+    <!-- Repo: cronduit (error) -->
+    <section class="card">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-bottom: 1px solid #1F2B37">
+        <span class="mono" style="font-size: 13.5px; font-weight: 600"><span style="color: #64758A">SimplicityGuy/</span>cronduit</span>
+        <span class="chip chip-neutral">audit unknown</span>
+        <div style="flex-grow: 1"></div>
+        <button class="btn btn-row" type="button">Retry</button>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 10px; margin: 14px 20px 16px 20px; padding: 11px 14px; border-radius: 8px; background: rgba(255,122,112,0.08); border: 1px solid rgba(255,122,112,0.25)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#FF8A80" stroke-width="1.6" stroke-linecap="round" style="margin-top: 1px"><path d="M8 2L14.5 13.2H1.5L8 2z" stroke-linejoin="round"></path><path d="M8 6.5v3"></path><path d="M8 11.6v0.1"></path></svg>
+        <div>
+          <div style="font-size: 12.5px; font-weight: 600; color: #FF8A80">Could not load this repo's PRs</div>
+          <div class="mono" style="font-size: 11.5px; color: #98A6B7; margin-top: 3px">gh: HTTP 502 from api.github.com — retried 3×, giving up for this refresh</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Repo: tracktion (empty) -->
+    <section class="card">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-bottom: 1px solid #1F2B37">
+        <span class="mono" style="font-size: 13.5px; font-weight: 600"><span style="color: #64758A">SimplicityGuy/</span>tracktion</span>
+        <a href="#" class="chip chip-caution">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.8l4.8 1.7v3.7c0 3-2 5.5-4.8 6.7-2.8-1.2-4.8-3.7-4.8-6.7V3.5L8 1.8z"></path><path d="M8 5.4v3"></path><path d="M8 10.6v0.1"></path></svg>
+          audit · 2 findings
+        </a>
+        <span style="font-size: 12px; color: #64758A">0 open PRs</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 9px; margin: 14px 20px 16px 20px; color: #64758A; font-size: 12.5px">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#56D592" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+        No open Dependabot pull requests — all caught up.
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <div style="display: flex; align-items: center; gap: 8px; padding: 4px 2px 24px 2px">
+      <span class="mono" style="font-size: 11px; color: #3C4F63">every call goes through the gh CLI — your gh login is the only credential · merge needs green CI, always</span>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+  <style>
+    body { margin: 0; background: #0B1015; font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', system-ui, sans-serif; color: #E7EDF3; -webkit-font-smoothing: antialiased; }
+    a { color: #2DD4BF; text-decoration: none; }
+    a:hover { color: #5EEAD4; text-decoration: underline; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; line-height: 1.7; white-space: nowrap; }
+    .chip-safe { color: #6FDFA0; background: rgba(86,213,146,0.12); border: 1px solid rgba(86,213,146,0.28); }
+    .chip-caution { color: #F2C14E; background: rgba(242,193,78,0.11); border: 1px solid rgba(242,193,78,0.28); }
+    .chip-unsafe { color: #FF8A80; background: rgba(255,122,112,0.11); border: 1px solid rgba(255,122,112,0.30); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px; border-radius: 6px; border: 1px solid #2B3A4A; background: #161F28; color: #C7D2DE; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 12.5px; font-weight: 500; line-height: 1.5; white-space: nowrap; cursor: pointer; }
+    .btn:hover { border-color: #3C4F63; }
+    .btn-primary { background: #2DD4BF; border: 1px solid #2DD4BF; color: #062A24; font-weight: 600; }
+    .btn-primary:hover { background: #43E0CC; border-color: #43E0CC; }
+    .th { font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: #64758A; }
+  </style>
+</helmet>
+<div style="width: 780px; min-height: 720px; background: #0B1015; box-sizing: border-box; padding: 30px">
+  <div style="background: #11181F; border: 1px solid #2B3A4A; border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.5)">
+
+    <div style="padding: 18px 24px; border-bottom: 1px solid #1F2B37">
+      <div style="font-size: 15px; font-weight: 600">Merge all eligible — fleet-wide</div>
+      <div style="font-size: 12.5px; color: #98A6B7; margin-top: 4px">4 PRs qualify at <span class="mono" style="font-size: 12px; color: #6FDFA0">safe+</span> with green CI · 3 skipped · nothing runs until you confirm</div>
+    </div>
+
+    <div style="padding: 16px 24px; border-bottom: 1px solid #1F2B37">
+      <div class="th" style="margin-bottom: 10px">Will merge · in this order</div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #0E141B; border: 1px solid #1F2B37; border-radius: 7px">
+          <span class="mono" style="font-size: 12px; color: #64758A; width: 190px">DependaPilot<span style="color: #2DD4BF">#142</span></span>
+          <span style="font-size: 12.5px; flex-grow: 1">ruff <span class="mono" style="font-size: 11.5px; color: #64758A">0.14.1 → 0.14.2</span></span>
+          <span class="chip chip-safe">SAFE 100</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #0E141B; border: 1px solid #1F2B37; border-radius: 7px">
+          <span class="mono" style="font-size: 12px; color: #64758A; width: 190px">DependaPilot<span style="color: #2DD4BF">#139</span></span>
+          <span style="font-size: 12.5px; flex-grow: 1">fastapi <span class="mono" style="font-size: 11.5px; color: #64758A">0.115.6 → 0.116.0</span></span>
+          <span class="chip chip-safe">SAFE 80</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #0E141B; border: 1px solid #1F2B37; border-radius: 7px">
+          <span class="mono" style="font-size: 12px; color: #64758A; width: 190px">vinyldigger<span style="color: #2DD4BF">#88</span></span>
+          <span style="font-size: 12.5px; flex-grow: 1">httpx <span class="mono" style="font-size: 11.5px; color: #64758A">0.27.2 → 0.28.1</span> <span class="mono" style="font-size: 10.5px; color: #64758A">· via squash</span></span>
+          <span class="chip chip-safe">SAFE 80</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #0E141B; border: 1px solid #1F2B37; border-radius: 7px">
+          <span class="mono" style="font-size: 12px; color: #64758A; width: 190px">vinyldigger<span style="color: #2DD4BF">#79</span></span>
+          <span style="font-size: 12.5px; flex-grow: 1">mypy <span class="mono" style="font-size: 11.5px; color: #64758A">1.13.0 → 1.15.0</span> <span class="mono" style="font-size: 10.5px; color: #64758A">· via squash</span></span>
+          <span class="chip chip-safe">SAFE 90</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 16px 24px; border-bottom: 1px solid #1F2B37">
+      <div class="th" style="margin-bottom: 10px">Skipped · 3</div>
+      <div style="display: flex; flex-direction: column; gap: 7px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span class="mono" style="font-size: 12px; color: #64758A; width: 190px">DependaPilot#131</span>
+          <span style="font-size: 12px; color: #98A6B7; flex-grow: 1">CI is failing — hard cap, never eligible</span>
+          <span class="chip chip-unsafe">UNSAFE</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span class="mono" style="font-size: 12px; color: #64758A; width: 190px">DependaPilot#127</span>
+          <span style="font-size: 12px; color: #98A6B7; flex-grow: 1">CI is still pending — merge needs green CI, always</span>
+          <span class="chip chip-caution">CAUTION 50</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span class="mono" style="font-size: 12px; color: #64758A; width: 190px">vinyldigger#86</span>
+          <span style="font-size: 12px; color: #98A6B7; flex-grow: 1">below the safe bucket (check "include caution" to widen)</span>
+          <span class="chip chip-caution">CAUTION 75</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 16px 24px">
+      <button class="btn btn-primary" type="button">Confirm merge · 4 PRs</button>
+      <button class="btn" type="button">Cancel</button>
+      <div style="flex-grow: 1"></div>
+      <span class="mono" style="font-size: 11px; color: #64758A">runs sequentially via gh · per-PR result reported</span>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
