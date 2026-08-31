@@ -333,12 +333,21 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 .bulkpanel-section:last-child { border-bottom: none; }
 .bulkpanel-title { font-size: 15px; font-weight: 600; }
 .bulkpanel-summary { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+.bulkpanel-bucket-word.is-safe { color: var(--safe); }
+.bulkpanel-bucket-word.is-caution { color: var(--caution); }
 .bulkpanel-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .bulkpanel-row {
   background: var(--surface-inset); border-radius: 6px; padding: 8px 12px;
   display: flex; align-items: center; gap: 10px;
 }
+.bulkpanel-row-plain { display: flex; align-items: center; gap: 12px; }
+.bulkpanel-repo { font-size: 12px; color: var(--ink-muted); min-width: 150px; flex-shrink: 0; }
+.bulkpanel-number { color: var(--accent); }
+.bulkpanel-dep { font-size: 12.5px; flex: 1 1 auto; min-width: 0; }
+.bulkpanel-version { font-size: 11.5px; margin-left: 8px; }
+.bulkpanel-reason { font-size: 12px; color: var(--ink-2); flex: 1 1 auto; min-width: 0; }
 .bulkpanel-footer { display: flex; align-items: center; gap: 12px; }
+.bulkpanel-footer-spacer { flex-grow: 1; }
 .bulkpanel-note { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
 
 /* ── Toggle ───────────────────────────────────────────────────────────── */
@@ -357,11 +366,12 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 
 /* ══════════════════════════════════════════════════════════════════════
  * LEGACY COMPAT — dark-adapted equivalents of the pre-redesign inline
- * styles, kept only so `_fleet.html`, `_bulk_panel.html`, `_bulk_results.html`,
- * `_actions_cell.html`, `_audit_list.html`, and `_audit_repo.html` stay
- * usable on the new dark ground between now and the beads that restyle
- * them onto the component classes above (dpilot-lbc.2 / dpilot-lbc.3 /
- * dpilot-lbc.4). Delete this whole section when those partials adopt
+ * styles, kept only so `_fleet.html`, `_actions_cell.html`, `_audit_list.html`,
+ * and `_audit_repo.html` stay usable on the new dark ground between now and
+ * the beads that restyle them onto the component classes above
+ * (dpilot-lbc.2 / dpilot-lbc.4). `_bulk_panel.html` / `_bulk_results.html`
+ * (dpilot-lbc.3) have already adopted the component classes and use none of
+ * this. Delete this whole section when the remaining partials adopt
  * .chip / .btn / .card / .prgrid / .th / .mono directly.
  * ══════════════════════════════════════════════════════════════════════ */
 
@@ -419,8 +429,6 @@ a.badge { text-decoration: none; }
 
 .bulk-toolbar { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.5rem; font-size: 0.85rem; color: var(--ink-2); }
 .bulk-caution { color: var(--ink-muted); }
-#bulk-panel:not(:empty) { border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; background: var(--surface); }
-.bulk-eligible, .bulk-skipped ul { margin: 0.4rem 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--ink-2); }
 
 .audit-ok { color: var(--safe); font-weight: 600; }
 .audit-findings { list-style: none; margin: 0.75rem 0; padding: 0; }

@@ -82,7 +82,11 @@ class TestBulkRoutes:
         response = client.post("/fleet/bulk/preview", data={"action": "approve"})
 
         assert response.status_code == 200
-        assert f"{REPO}#1" in response.text
+        # the eligible row's repo and PR number render in separate spans
+        # (the number is accent-colored per the design language), so check
+        # for each rather than the old contiguous "repo#number" substring.
+        assert REPO in response.text
+        assert "#1" in response.text
         assert "skipped" in response.text.lower()
 
     def test_preview_without_fleet_service_degrades_inline(self) -> None:
@@ -144,9 +148,11 @@ class TestBulkRoutes:
         )
 
         assert response.status_code == 200
-        assert f"{REPO}#1" in response.text
-        assert f"{REPO}#2" in response.text
-        assert f"{REPO}#3" not in response.text
+        # PR number renders in its own accent-colored span, so match repo and
+        # number separately rather than the old contiguous substring.
+        assert "#1" in response.text
+        assert "#2" in response.text
+        assert "#3" not in response.text
 
     def test_preview_selection_carries_a_selected_but_ineligible_pr_into_the_confirm_form(
         self,

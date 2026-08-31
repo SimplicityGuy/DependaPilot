@@ -1,47 +1,85 @@
 <div id="bulk-panel">
   {% if unconfigured %}
-  <p class="fleet-error">Fleet service is not configured.</p>
+  <div class="bulkpanel">
+    <div class="bulkpanel-section">
+      <div class="error-banner">
+        <span class="error-banner-icon">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2L14.5 13.2H1.5L8 2z" stroke-linejoin="round"></path><path d="M8 6.5v3"></path><path d="M8 11.6v0.1"></path></svg>
+        </span>
+        <div class="error-banner-summary">Fleet service is not configured.</div>
+      </div>
+    </div>
+  </div>
   {% else %}
-  <div class="bulk-preview">
-    <h3>{{ preview.action|capitalize }} all eligible &mdash; {{ repo if repo else "fleet-wide" }}</h3>
-    <p>
-      {{ preview.eligible|length }} PR{{ "" if preview.eligible|length == 1 else "s" }} eligible
-      ({{ preview.min_bucket.value }}+ and CI green), {{ preview.skipped|length }} skipped.
-    </p>
+  <div class="bulkpanel">
+    <div class="bulkpanel-section">
+      <div class="bulkpanel-title">{{ preview.action|capitalize }} all eligible &mdash; {{ repo if repo else "fleet-wide" }}</div>
+      <div class="bulkpanel-summary">
+        {{ preview.eligible|length }} PR{{ "" if preview.eligible|length == 1 else "s" }} qualify at
+        <span class="mono bulkpanel-bucket-word is-{{ preview.min_bucket.value }}">{{ preview.min_bucket.value }}+</span>
+        with green CI &middot; {{ preview.skipped|length }} skipped &middot; nothing runs until you confirm
+      </div>
+    </div>
+
     {% if preview.eligible %}
-    <ul class="bulk-eligible">
-      {% for row in preview.eligible %}
-      <li>{{ row.pr.repo }}#{{ row.pr.number }} &mdash; {{ row.pr.title }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-    {% if preview.skipped %}
-    <details class="bulk-skipped">
-      <summary>{{ preview.skipped|length }} skipped</summary>
-      <ul>
-        {% for decision in preview.skipped %}
-        <li>{{ decision.repo }}#{{ decision.number }}: {{ decision.reason }}</li>
+    <div class="bulkpanel-section">
+      <div class="th">Will {{ preview.action }} &middot; in this order</div>
+      <ul class="bulkpanel-list">
+        {% for row in preview.eligible %}
+        <li class="bulkpanel-row">
+          <span class="mono bulkpanel-repo">{{ row.pr.repo }}<span class="bulkpanel-number">#{{ row.pr.number }}</span></span>
+          <span class="bulkpanel-dep">
+            {% if row.summary and row.summary.names %}{{ row.summary.names|join(", ") }}{% else %}{{ row.pr.title }}{% endif %}
+            <span class="mono bulkpanel-version">
+              <span class="version-old">{{ (row.summary.old_version if row.summary else none) or "unknown" }}</span>
+              <span class="version-arrow">&rarr;</span>
+              <span class="version-new">{{ (row.summary.new_version if row.summary else none) or "unknown" }}</span>
+            </span>
+          </span>
+          <span class="chip chip-{{ row.safety.bucket.value }}">{{ row.safety.bucket.value|upper }} {{ row.safety.score }}</span>
+        </li>
         {% endfor %}
       </ul>
-    </details>
+    </div>
     {% endif %}
-    {% if preview.eligible %}
-    <form
-      hx-post="/fleet/bulk/execute"
-      hx-target="#bulk-panel"
-      hx-swap="outerHTML"
-      hx-confirm="Proceed with {{ preview.action }} on {{ preview.eligible|length }} PR(s)?"
-    >
-      <input type="hidden" name="action" value="{{ preview.action }}" />
-      {% if repo %}<input type="hidden" name="repo" value="{{ repo }}" />{% endif %}
-      <input type="hidden" name="min_bucket" value="{{ preview.min_bucket.value }}" />
-      {% for value in selected %}
-      <input type="hidden" name="selected" value="{{ value }}" />
-      {% endfor %}
-      <button type="submit">Confirm {{ preview.action }}</button>
-    </form>
+
+    {% if preview.skipped %}
+    <div class="bulkpanel-section">
+      <div class="th">Skipped &middot; {{ preview.skipped|length }}</div>
+      <ul class="bulkpanel-list">
+        {% for decision in preview.skipped %}
+        <li class="bulkpanel-row-plain">
+          <span class="mono bulkpanel-repo">{{ decision.repo }}#{{ decision.number }}</span>
+          <span class="bulkpanel-reason">{{ decision.reason }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
     {% endif %}
-    <button type="button" onclick="this.closest('#bulk-panel').replaceChildren()">Cancel</button>
+
+    <div class="bulkpanel-section bulkpanel-footer">
+      {% if preview.eligible %}
+      <form
+        hx-post="/fleet/bulk/execute"
+        hx-target="#bulk-panel"
+        hx-swap="outerHTML"
+        hx-confirm="Proceed with {{ preview.action }} on {{ preview.eligible|length }} PR(s)?"
+      >
+        <input type="hidden" name="action" value="{{ preview.action }}" />
+        {% if repo %}<input type="hidden" name="repo" value="{{ repo }}" />{% endif %}
+        <input type="hidden" name="min_bucket" value="{{ preview.min_bucket.value }}" />
+        {% for value in selected %}
+        <input type="hidden" name="selected" value="{{ value }}" />
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">
+          Confirm {{ preview.action }} &middot; {{ preview.eligible|length }} PR{{ "" if preview.eligible|length == 1 else "s" }}
+        </button>
+      </form>
+      {% endif %}
+      <button type="button" class="btn" onclick="this.closest('#bulk-panel').replaceChildren()">Cancel</button>
+      <span class="bulkpanel-footer-spacer"></span>
+      <span class="mono bulkpanel-note">runs sequentially via gh &middot; per-PR result reported</span>
+    </div>
   </div>
   {% endif %}
 </div>
