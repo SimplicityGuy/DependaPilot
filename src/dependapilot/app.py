@@ -20,7 +20,11 @@ from dependapilot.audit_service import (
     badge_for,
 )
 from dependapilot.bulk import execute_bulk, preview_bulk
+from dependapilot.ci import CIVerdictService
+from dependapilot.config import FleetConfig
+from dependapilot.discovery import DiscoveryService
 from dependapilot.fleet import FleetService
+from dependapilot.github import GitHubClient
 from dependapilot.github.errors import GitHubAPIError, github_error_message
 from dependapilot.scoring import SafetyBucket
 
@@ -253,6 +257,29 @@ def _unconfigured_result(owner: str, repo: str, number: int, action: str) -> Act
         outcome=ActionOutcome.FAILED,
         message="Actions are not configured for this dashboard.",
     )
+
+
+def build_app(fleet: FleetConfig, client: GitHubClient) -> FastAPI:
+    """Wire a live dashboard from an already-authenticated `GitHubClient`.
+
+    `cli.py serve`'s entry point: builds every service off the one client and
+    `FleetConfig`, keyed by each repo's `audit`/`actions` flags, and hands them
+    to `create_app` -- the counterpart to the unwired scaffold `app` below.
+    """
+    discovery = DiscoveryService(client, fleet)
+    ci_service = CIVerdictService(client)
+    audit_enabled_repos = frozenset(entry.repo for entry in fleet.repos if entry.audit)
+    actions_enabled_repos = frozenset(entry.repo for entry in fleet.repos if entry.actions)
+    fleet_service = FleetService(
+        client,
+        discovery,
+        ci_service,
+        audit_enabled_repos=audit_enabled_repos,
+        actions_enabled_repos=actions_enabled_repos,
+    )
+    actions_service = ActionsService(client, fleet, ci_service)
+    audit_service = AuditService(client, fleet, audit_enabled_repos=audit_enabled_repos)
+    return create_app(fleet_service, actions_service, audit_service)
 
 
 app = create_app()
