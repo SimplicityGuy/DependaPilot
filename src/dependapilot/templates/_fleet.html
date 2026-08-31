@@ -1,169 +1,250 @@
+{% macro ci_cell(verdict) %}
+{%- if verdict.value == "green" -%}
+<span class="ci-cell ci-cell-safe">
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+  passing
+</span>
+{%- elif verdict.value == "pending" -%}
+<span class="ci-cell ci-cell-caution">
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.6"></circle><path d="M8 5.2v3l2 1.2"></path></svg>
+  pending
+</span>
+{%- elif verdict.value == "failing" -%}
+<span class="ci-cell ci-cell-unsafe">
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+  failing
+</span>
+{%- else -%}
+<span class="ci-cell ci-cell-neutral">no ci</span>
+{%- endif -%}
+{% endmacro %}
+
+{% macro safety_cell(safety) %}
+{%- set bucket = safety.bucket.value -%}
+<span class="safety-cell">
+  <span class="chip chip-{{ bucket }}">{{ bucket|upper }}</span>
+  <span class="safety-score mono">{{ safety.score }}</span>
+  <span class="meter"><span class="meter-fill meter-fill-{{ bucket }}" style="width: {{ safety.score }}%"></span></span>
+  <svg class="chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"></path></svg>
+</span>
+{% endmacro %}
+
+{% macro ledger(safety) %}
+<div class="ledger">
+  <div class="th" style="margin-bottom: 10px">Score breakdown</div>
+  <div class="ledger-rows">
+    {% for signal in safety.breakdown %}
+    <div class="ledger-row">
+      <span class="ledger-signal">{{ signal.signal }}</span>
+      <span class="ledger-delta {{ 'ledger-delta-positive' if signal.delta > 0 else 'ledger-delta-negative' if signal.delta < 0 else 'ledger-delta-zero' }}">{{ "%+d"|format(signal.delta) }}</span>
+      <span class="ledger-reason">{{ signal.reason }}</span>
+    </div>
+    {% endfor %}
+    <div class="ledger-row ledger-total">
+      <span class="ledger-signal">total</span>
+      <span class="ledger-delta">{{ safety.score }}</span>
+      <span class="chip chip-{{ safety.bucket.value }}">{{ safety.bucket.value|upper }}</span>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% set bump_chip_class = {"patch": "chip-safe", "minor": "chip-info", "major": "chip-unsafe", "unknown": "chip-unsafe"} %}
+
 <div id="fleet">
   {% if unconfigured %}
-  <p class="fleet-error">Fleet service is not configured.</p>
+  <p class="emptystate">Fleet service is not configured.</p>
   {% elif not repos %}
-  <p class="fleet-empty">No repositories are configured for this fleet.</p>
+  <p class="emptystate">No repositories are configured for this fleet.</p>
   {% else %}
+
+  {% if totals and totals.repos %}
+  <div class="statstrip">
+    <div class="card stattile">
+      <div class="th">Repos</div>
+      <div class="stattile-number">{{ totals.repos }}</div>
+      <div class="stattile-sub">
+        {{ totals.repos_reachable }} reachable{% if totals.repos_errored %} · {{ totals.repos_errored }} error{{ "" if totals.repos_errored == 1 else "s" }}{% endif %}
+      </div>
+    </div>
+    <div class="card stattile">
+      <div class="th">Open PRs</div>
+      <div class="stattile-number">{{ totals.open_prs }}</div>
+      <div class="stattile-sub">all from Dependabot</div>
+    </div>
+    <div class="card stattile">
+      <div class="th" style="color: var(--safe)">Safe</div>
+      <div class="stattile-number" style="color: var(--safe)">{{ totals.safe }}</div>
+      <div class="stattile-sub">ready to merge</div>
+    </div>
+    <div class="card stattile">
+      <div class="th" style="color: var(--caution)">Caution</div>
+      <div class="stattile-number" style="color: var(--caution)">{{ totals.caution }}</div>
+      <div class="stattile-sub">need a human look</div>
+    </div>
+    <div class="card stattile">
+      <div class="th" style="color: var(--unsafe)">Unsafe</div>
+      <div class="stattile-number" style="color: var(--unsafe)">{{ totals.unsafe }}</div>
+      <div class="stattile-sub">blocked by CI</div>
+    </div>
+  </div>
+  {% endif %}
+
   {% for repo in repos %}
-  <section class="repo">
-    <div class="repo-header">
-      <h2>{{ repo.repo }}</h2>
+  {% set repo_parts = repo.repo.split("/", 1) %}
+  <section class="card">
+    <div class="card-header">
+      <span class="mono repo-slug"><span class="repo-slug-owner">{{ repo_parts[0] }}/</span>{{ repo_parts[1] }}</span>
       {% set badge = audit_badges.get(repo.repo) if repo.audit_enabled else none %}
       {% if badge %}
+      {% set audit_chip_class = {"ok": "chip-safe", "findings": "chip-caution", "unknown": "chip-neutral", "error": "chip-unsafe"}.get(badge.state.value, "chip-neutral") %}
       <a
-        class="badge badge-audit-{{ badge.state.value }}"
+        class="chip {{ audit_chip_class }}"
         href="/audit#audit-{{ repo.repo|replace('/', '-') }}"
         title="Open the audit view for this repo"
       >
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          {%- if badge.state.value == "ok" -%}
+          <path d="M8 1.8l4.8 1.7v3.7c0 3-2 5.5-4.8 6.7-2.8-1.2-4.8-3.7-4.8-6.7V3.5L8 1.8z"></path><path d="M5.7 8.1l1.6 1.6 3-3.2"></path>
+          {%- else -%}
+          <path d="M8 1.8l4.8 1.7v3.7c0 3-2 5.5-4.8 6.7-2.8-1.2-4.8-3.7-4.8-6.7V3.5L8 1.8z"></path><path d="M8 5.4v3"></path><path d="M8 10.6v0.1"></path>
+          {%- endif -%}
+        </svg>
         {%- if badge.state.value == "ok" -%}
-        Audit: ok
+        audit ok
         {%- elif badge.state.value == "findings" -%}
-        Audit: {{ badge.count }} finding{{ "" if badge.count == 1 else "s" }}
+        audit &middot; {{ badge.count }} finding{{ "" if badge.count == 1 else "s" }}
         {%- elif badge.state.value == "unknown" -%}
-        Audit: unknown
+        audit unknown
         {%- else -%}
-        Audit: error
+        audit error
         {%- endif -%}
       </a>
       {% else %}
       {% set audit_off_reason = "Audit service is not configured" if repo.audit_enabled else "Enable audit: true for this repo in repos.yml" %}
-      <span class="badge badge-audit-off" title="{{ audit_off_reason }}">Audit: off</span>
+      <span class="chip chip-neutral" title="{{ audit_off_reason }}">audit off</span>
       {% endif %}
       {% if not repo.actions_enabled %}
       {% set actions_off_reason = "Enable actions: true for this repo in repos.yml" if actions_configured else "Actions service is not configured" %}
-      <span
-        class="badge badge-actions-{{ 'off' if actions_configured else 'unconfigured' }}"
-        title="{{ actions_off_reason }}"
-      >
-        Actions: off
-      </span>
+      <span class="chip chip-neutral" title="{{ actions_off_reason }}">actions off</span>
       {% endif %}
-      <span class="pr-count">{{ repo.rows|length }} open PR{{ "" if repo.rows|length == 1 else "s" }}</span>
+      <span class="repo-pr-count">{{ repo.rows|length }} open PR{{ "" if repo.rows|length == 1 else "s" }}</span>
+      <div class="spacer"></div>
       {% if repo.actions_enabled and repo.rows %}
       <span class="bulk-toolbar" data-repo="{{ repo.repo }}">
-        <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
+        <label class="toggle-label bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
         <button
+          class="btn btn-row"
+          type="button"
           hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "approve", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(event.target.closest(".repo").querySelectorAll(".bulk-select-row:checked")).map(cb => cb.value)}'
+          hx-vals='js:{"action": "approve", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(event.target.closest(".card").querySelectorAll(".bulk-select-row:checked")).map(cb => cb.value)}'
           hx-target="#bulk-panel"
           hx-swap="outerHTML"
         >
-          Approve all eligible
+          Approve eligible
         </button>
         <button
+          class="btn btn-row btn-primary"
+          type="button"
           hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "merge", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(event.target.closest(".repo").querySelectorAll(".bulk-select-row:checked")).map(cb => cb.value)}'
+          hx-vals='js:{"action": "merge", "repo": "{{ repo.repo }}", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(event.target.closest(".card").querySelectorAll(".bulk-select-row:checked")).map(cb => cb.value)}'
           hx-target="#bulk-panel"
           hx-swap="outerHTML"
         >
-          Merge all eligible
+          Merge eligible
         </button>
       </span>
       {% endif %}
     </div>
 
     {% if repo.error %}
-    <p class="repo-error">Could not load this repo's PRs: {{ repo.error }}</p>
+    <div class="error-banner" style="margin: 14px 20px 16px 20px">
+      <svg class="error-banner-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin-top: 1px">
+        <path d="M8 2L14.5 13.2H1.5L8 2z" stroke-linejoin="round"></path><path d="M8 6.5v3"></path><path d="M8 11.6v0.1"></path>
+      </svg>
+      <div>
+        <div class="error-banner-summary">Could not load this repo's PRs</div>
+        <div class="error-banner-detail mono">{{ repo.error }}</div>
+      </div>
+    </div>
     {% elif not repo.rows %}
-    <p class="repo-empty">No open Dependabot pull requests.</p>
+    <div class="emptystate" style="margin: 14px 20px 16px 20px">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--safe-solid)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+      No open Dependabot pull requests — all caught up.
+    </div>
     {% else %}
-    <table>
-      <thead>
-        <tr>
-          {% if repo.actions_enabled %}
-          <th>
-            <input
-              type="checkbox"
-              class="bulk-select-all"
-              title="Select all"
-              onchange="this.closest('table').querySelectorAll('.bulk-select-row').forEach(function (cb) { cb.checked = this.checked; }, this)"
-            />
-          </th>
-          {% endif %}
-          <th>PR</th>
-          <th>Dependency</th>
-          <th>Semver</th>
-          <th>Type</th>
-          <th>CI</th>
-          <th>Safety</th>
-          <th>Age</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in repo.rows %}
-        <tr>
-          {% if row.error %}
-          <td colspan="{{ 9 if repo.actions_enabled else 8 }}" class="row-error">PR #{{ row.pr.number }}: {{ row.error }}</td>
+
+    <div class="prgrid th">
+      <span>{% if repo.actions_enabled %}<input type="checkbox" class="bulk-select-all" title="Select all" onchange="this.closest('.card').querySelectorAll('.bulk-select-row').forEach(function (cb) { cb.checked = this.checked; }, this)" />{% endif %} PR</span>
+      <span>Dependency</span>
+      <span>Bump</span>
+      <span>Type</span>
+      <span>CI</span>
+      <span>Safety</span>
+      <span>Age</span>
+      <span>Actions</span>
+    </div>
+
+    {% for row in repo.rows %}
+    {% set is_last_row = loop.last %}
+    {% if row.error %}
+    <div class="prgrid-row row-error{{ ' prgrid-row-last' if is_last_row else '' }}">PR #{{ row.pr.number }}: {{ row.error }}</div>
+    {% else %}
+    {% set repo_row_parts = row.pr.repo.split("/", 1) %}
+    {% set summary_is_last = is_last_row and not row.safety %}
+    <details>
+      <summary class="prgrid prgrid-row{{ ' prgrid-row-last' if summary_is_last else '' }}">
+        <span>
+          {% if repo.actions_enabled %}<input type="checkbox" class="bulk-select-row" name="selected" value="{{ row.pr.repo }}#{{ row.pr.number }}" onclick="event.stopPropagation()" />{% endif %}
+          <a href="{{ row.pr.html_url }}" target="_blank" rel="noopener" class="pr-number mono">#{{ row.pr.number }}</a>
+        </span>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span class="dep-name">{{ row.summary.names|join(", ") if row.summary.names else row.pr.title }}</span>
+            {% if row.closes_open_alert %}<span class="chip chip-safe">closes alert</span>{% endif %}
+          </div>
+          <div class="dep-version mono">
+            <span class="version-old">{{ row.summary.old_version or "unknown" }}</span>
+            <span class="version-arrow">&rarr;</span>
+            <span class="version-new">{{ row.summary.new_version or "unknown" }}</span>
+          </div>
+        </div>
+        <span>
+          {% for label in row.summary.semver_labels %}
+          <span class="chip {{ bump_chip_class.get(label, 'chip-unsafe') }}">{{ label }}</span>
           {% else %}
-          {% if repo.actions_enabled %}
-          <td>
-            <input
-              type="checkbox"
-              class="bulk-select-row"
-              name="selected"
-              value="{{ row.pr.repo }}#{{ row.pr.number }}"
-            />
-          </td>
-          {% endif %}
-          <td><a href="{{ row.pr.html_url }}" target="_blank" rel="noopener">#{{ row.pr.number }}</a></td>
-          <td>
-            {% if row.summary.names %}
-            {{ row.summary.names|join(", ") }}
-            {% else %}
-            {{ row.pr.title }}
-            {% endif %}
-            <br />
-            <small>{{ row.summary.old_version or "unknown" }} &rarr; {{ row.summary.new_version or "unknown" }}</small>
-          </td>
-          <td>
-            {% for label in row.summary.semver_labels %}
-            <span class="badge badge-semver-{{ label }}">{{ label }}</span>
-            {% else %}
-            <span class="badge badge-semver-unknown">unknown</span>
-            {% endfor %}
-          </td>
-          <td>
-            {% for label in row.summary.dependency_type_labels %}
-            <span class="badge badge-dependency-type">{{ label }}</span>
-            {% else %}
-            <span class="badge badge-dependency-type">unknown</span>
-            {% endfor %}
-          </td>
-          <td>
-            <span class="badge badge-ci-{{ row.ci_status.verdict.value }}">{{ row.ci_status.verdict.value }}</span>
-          </td>
-          <td>
-            <details>
-              <summary>
-                <span class="badge badge-bucket-{{ row.safety.bucket.value }}">{{ row.safety.bucket.value }}</span>
-                {{ row.safety.score }}
-              </summary>
-              <ul class="breakdown">
-                {% for signal in row.safety.breakdown %}
-                <li><strong>{{ signal.signal }}</strong> ({{ "%+d"|format(signal.delta) }}): {{ signal.reason }}</li>
-                {% endfor %}
-              </ul>
-            </details>
-          </td>
-          <td>
-            {% if row.safety.stale %}
-            <span class="stale-flag">Stale</span>
-            {% endif %}
-          </td>
-          {% if repo.actions_enabled %}
-          {% set repo_parts = row.pr.repo.split("/", 1) %}
-          {% with owner = repo_parts[0], repo_name = repo_parts[1], ci_green = (row.ci_status.verdict.value == "green"), head_sha = row.pr.head_sha, number = row.pr.number, outcome = none %}
-          {% include "_actions_cell.html" %}
-          {% endwith %}
+          <span class="chip chip-unsafe">unknown</span>
+          {% endfor %}
+        </span>
+        <span>
+          {% for label in row.summary.dependency_type_labels %}
+          <span class="chip chip-type">{{ label|replace("development", "dev")|replace("production", "prod") }}</span>
           {% else %}
-          <td class="actions actions-disabled" title="Enable 'actions: true' for this repo in repos.yml">—</td>
-          {% endif %}
-          {% endif %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          <span class="chip chip-type">unknown</span>
+          {% endfor %}
+        </span>
+        {{ ci_cell(row.ci_status.verdict) }}
+        {{ safety_cell(row.safety) }}
+        <span class="age-cell">
+          <span class="age-value mono">{{ row.age_days ~ "d" if row.age_days is not none else "—" }}</span>
+          {% if row.safety.stale %}<span class="chip chip-caution">stale</span>{% endif %}
+        </span>
+        {% if repo.actions_enabled %}
+        {% with owner = repo_row_parts[0], repo_name = repo_row_parts[1], ci_green = (row.ci_status.verdict.value == "green"), head_sha = row.pr.head_sha, number = row.pr.number, outcome = none %}
+        {% include "_actions_cell.html" %}
+        {% endwith %}
+        {% else %}
+        <span class="actions-cell-off" title="Enable 'actions: true' for this repo in repos.yml">&mdash;</span>
+        {% endif %}
+      </summary>
+      {% if row.safety %}
+      <div class="ledger-wrap{{ ' prgrid-row-last' if is_last_row else '' }}">
+        {{ ledger(row.safety) }}
+      </div>
+      {% endif %}
+    </details>
+    {% endif %}
+    {% endfor %}
     {% endif %}
   </section>
   {% endfor %}
