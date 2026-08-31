@@ -49,8 +49,10 @@ class RepoConfig(BaseModel):
 
     repo: str
     merge_method: MergeMethod | None = None
-    audit: bool = False
+    audit: bool = True
+    """Read-only, and the tool's purpose -- on by default unless a repo opts out."""
     actions: bool = False
+    """Dashboard write access -- off by default; a repo must opt in explicitly."""
 
     @field_validator("repo")
     @classmethod
