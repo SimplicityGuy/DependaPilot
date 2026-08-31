@@ -322,6 +322,36 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 /* ── Empty state ──────────────────────────────────────────────────────── */
 
 .emptystate { display: flex; align-items: center; gap: 9px; color: var(--ink-muted); font-size: 12.5px; }
+.emptystate-safe { color: var(--safe-solid); }
+
+/* ── Audit view ───────────────────────────────────────────────────────── */
+
+.auditlist { display: flex; flex-direction: column; gap: 14px; }
+
+.spacer { flex-grow: 1; }
+
+.reposlug { font-size: 13.5px; font-weight: 600; }
+.reposlug-owner { color: var(--ink-muted); }
+
+.chip-note { font-size: 12.5px; color: var(--ink-muted); }
+
+.findinglist { display: flex; flex-direction: column; }
+.findingrow {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 20px; border-bottom: 1px solid var(--border-hair);
+}
+.findingrow:last-child { border-bottom: none; }
+.findingrow .chip { margin-top: 1px; flex-shrink: 0; }
+.findingrow-text { font-size: 13px; }
+.findingrow-hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-muted); }
+
+.audit-diff { padding: 16px 20px; }
+.audit-diff > summary { margin-bottom: 10px; cursor: pointer; }
+
+.fixprrow { display: flex; align-items: center; gap: 12px; padding: 14px 20px; flex-wrap: wrap; }
+.fixprrow-existing { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+.fixprrow-existing svg { color: var(--info); }
+.fixprrow-error { font-size: 12.5px; color: var(--unsafe); }
 
 /* ── Bulk preview panel ───────────────────────────────────────────────── */
 
@@ -366,12 +396,13 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 
 /* ══════════════════════════════════════════════════════════════════════
  * LEGACY COMPAT — dark-adapted equivalents of the pre-redesign inline
- * styles, kept only so `_fleet.html`, `_actions_cell.html`, `_audit_list.html`,
- * and `_audit_repo.html` stay usable on the new dark ground between now and
- * the beads that restyle them onto the component classes above
- * (dpilot-lbc.2 / dpilot-lbc.4). `_bulk_panel.html` / `_bulk_results.html`
- * (dpilot-lbc.3) have already adopted the component classes and use none of
- * this. Delete this whole section when the remaining partials adopt
+ * styles, kept only so `_fleet.html` and `_actions_cell.html` stay usable
+ * on the new dark ground between now and the bead that restyles them onto
+ * the component classes above (dpilot-lbc.2). `_bulk_panel.html` /
+ * `_bulk_results.html` (dpilot-lbc.3) and `_audit_list.html` / `_audit_repo.html`
+ * (dpilot-lbc.4) have already adopted the component classes; `_audit_list.html`
+ * still uses the shared `.fleet-error` / `.fleet-empty` rules below. Delete
+ * this whole section when `_fleet.html` / `_actions_cell.html` adopt
  * .chip / .btn / .card / .prgrid / .th / .mono directly.
  * ══════════════════════════════════════════════════════════════════════ */
 
@@ -409,10 +440,6 @@ a.badge { text-decoration: none; }
 .badge-bucket-safe { background: var(--safe-bg); color: var(--safe); }
 .badge-bucket-caution { background: var(--caution-bg); color: var(--caution); }
 .badge-bucket-unsafe { background: var(--unsafe-bg); color: var(--unsafe); }
-.badge-severity-high { background: var(--unsafe-bg); color: var(--unsafe); }
-.badge-severity-medium { background: var(--caution-bg); color: var(--caution); }
-.badge-severity-low { background: var(--info-bg); color: var(--info); }
-.badge-severity-info { background: var(--neutral-bg); color: var(--neutral); }
 
 .stale-flag { color: var(--unsafe); font-weight: 600; font-size: 0.85rem; }
 .breakdown { margin: 0.4rem 0 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--ink-2); }
@@ -430,21 +457,6 @@ a.badge { text-decoration: none; }
 .bulk-toolbar { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.5rem; font-size: 0.85rem; color: var(--ink-2); }
 .bulk-caution { color: var(--ink-muted); }
 
-.audit-ok { color: var(--safe); font-weight: 600; }
-.audit-findings { list-style: none; margin: 0.75rem 0; padding: 0; }
-.finding { padding: 0.5rem 0; border-bottom: 1px solid var(--border-hair); font-size: 0.92rem; color: var(--ink); }
-.finding code { background: var(--surface-code); padding: 0.05rem 0.35rem; border-radius: 4px; font-size: 0.85rem; color: var(--ink-ctl); }
-.finding-info { color: var(--ink-2); }
-.remediation-hint { margin: 0.25rem 0 0; color: var(--ink-muted); font-size: 0.85rem; font-style: italic; }
-.audit-diff { margin: 0.75rem 0; }
-.audit-diff summary { cursor: pointer; font-weight: 600; color: var(--ink); }
-pre.diff { background: var(--surface-inset); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; overflow-x: auto; font-size: 0.82rem; margin-top: 0.5rem; }
-.diff-line { display: block; white-space: pre; color: var(--ink-2); }
-.diff-add { background: rgba(86,213,146,0.09); color: var(--safe); }
-.diff-del { background: rgba(255,122,112,0.09); color: var(--unsafe); }
-.diff-hunk { color: var(--dim-alt); }
-.fix-pr { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.fix-pr button { font-size: 0.85rem; padding: 0.3rem 0.7rem; }
 .repo-header button { font-size: 0.82rem; padding: 0.2rem 0.6rem; }
 
 /* ══════════════════════════════════════════════════════════════════════
