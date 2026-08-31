@@ -70,7 +70,22 @@ class TestOverrides:
 
         assert config.merge_method_for("SimplicityGuy/DependaPilot") is MergeMethod.SQUASH
         entry = config.repos[0]
-        assert entry.audit is False
+        assert entry.audit is True
+        assert entry.actions is False
+
+    def test_audit_defaults_true_and_actions_defaults_false(self, tmp_path: Path) -> None:
+        config_path = write_yaml(
+            tmp_path,
+            """
+            repos:
+              - repo: SimplicityGuy/DependaPilot
+            """,
+        )
+
+        config = load_fleet_config(config_path)
+
+        entry = config.repos[0]
+        assert entry.audit is True
         assert entry.actions is False
 
     def test_repo_merge_method_override_wins_over_default(self, tmp_path: Path) -> None:
