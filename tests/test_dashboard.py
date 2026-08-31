@@ -365,3 +365,50 @@ class TestFleetActionsBadge:
         assert "badge-actions-unconfigured" in response.text
         assert "badge-actions-off" not in response.text
         assert "Actions service is not configured" in response.text
+
+
+class TestFleetBulkSelectCheckboxes:
+    def test_actions_enabled_repo_rows_get_a_select_checkbox(self) -> None:
+        views = (
+            RepoView(
+                repo="acme/widgets",
+                actions_enabled=True,
+                rows=(make_row(), make_row(number=2)),
+            ),
+        )
+        client = client_for(FakeFleetService(views))
+
+        response = client.get("/fleet")
+
+        assert response.status_code == 200
+        assert 'class="bulk-select-row"' in response.text
+        assert 'value="acme/widgets#1"' in response.text
+        assert 'value="acme/widgets#2"' in response.text
+        assert 'class="bulk-select-all"' in response.text
+
+    def test_actions_disabled_repo_rows_get_no_select_checkbox(self) -> None:
+        views = (RepoView(repo="acme/widgets", actions_enabled=False, rows=(make_row(),)),)
+        client = client_for(FakeFleetService(views))
+
+        response = client.get("/fleet")
+
+        assert response.status_code == 200
+        assert "bulk-select-row" not in response.text
+        assert "bulk-select-all" not in response.text
+
+    def test_select_all_toggles_the_repos_row_checkboxes(self) -> None:
+        views = (
+            RepoView(
+                repo="acme/widgets",
+                actions_enabled=True,
+                rows=(make_row(), make_row(number=2)),
+            ),
+        )
+        client = client_for(FakeFleetService(views))
+
+        response = client.get("/fleet")
+
+        # Template-level check of the toggle wiring, not a browser JS run.
+        assert "bulk-select-all" in response.text
+        assert "querySelectorAll('.bulk-select-row')" in response.text
+        assert "cb.checked = this.checked" in response.text

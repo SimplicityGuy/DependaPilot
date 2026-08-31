@@ -74,7 +74,7 @@
         <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
         <button
           hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "approve", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-vals='js:{"action": "approve", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(document.querySelectorAll("#fleet .bulk-select-row:checked")).map(cb => cb.value)}'
           hx-target="#bulk-panel"
           hx-swap="outerHTML"
         >
@@ -82,7 +82,7 @@
         </button>
         <button
           hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "merge", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe"}'
+          hx-vals='js:{"action": "merge", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(document.querySelectorAll("#fleet .bulk-select-row:checked")).map(cb => cb.value)}'
           hx-target="#bulk-panel"
           hx-swap="outerHTML"
         >

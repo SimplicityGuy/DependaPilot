@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 
 from dependapilot.actions import ActionOutcome, ActionResult
-from dependapilot.bulk import BulkOutcome, execute_bulk, is_eligible, preview_bulk
+from dependapilot.bulk import BulkOutcome, execute_bulk, is_eligible, parse_selection, preview_bulk
 from dependapilot.ci import CIStatus, CIVerdict
 from dependapilot.discovery import PRRecord
 from dependapilot.fleet import PRRow, RepoView
@@ -192,6 +192,69 @@ class TestPreviewBulk:
         with pytest.raises(ValueError, match="unknown bulk action"):
             await preview_bulk(service, action="delete")
 
+    async def test_selection_narrows_to_exactly_the_chosen_prs(self) -> None:
+        views = (
+            RepoView(
+                repo="acme/widgets",
+                rows=(make_row(number=1), make_row(number=2), make_row(number=3)),
+            ),
+        )
+        service = FakeFleetService(views)
+
+        preview = await preview_bulk(
+            service,
+            action="approve",
+            selected=frozenset({("acme/widgets", 1), ("acme/widgets", 2)}),
+        )
+
+        numbers = {row.pr.number for row in preview.eligible}
+        assert numbers == {1, 2}
+        assert preview.skipped == ()
+
+    async def test_selected_but_ineligible_pr_is_skipped_with_its_real_reason(self) -> None:
+        views = (
+            RepoView(
+                repo="acme/widgets",
+                rows=(make_row(number=1), make_row(number=2, verdict=CIVerdict.FAILING)),
+            ),
+        )
+        service = FakeFleetService(views)
+
+        preview = await preview_bulk(
+            service,
+            action="approve",
+            selected=frozenset({("acme/widgets", 1), ("acme/widgets", 2)}),
+        )
+
+        assert {row.pr.number for row in preview.eligible} == {1}
+        assert len(preview.skipped) == 1
+        assert preview.skipped[0].number == 2
+        assert "CI is not green" in preview.skipped[0].reason  # type: ignore[arg-type]
+
+    async def test_empty_selection_preserves_all_eligible_semantics(self) -> None:
+        views = (RepoView(repo="acme/widgets", rows=(make_row(number=1), make_row(number=2))),)
+        service = FakeFleetService(views)
+
+        no_selection = await preview_bulk(service, action="approve", selected=None)
+        empty_selection = await preview_bulk(service, action="approve", selected=frozenset())
+
+        assert {row.pr.number for row in no_selection.eligible} == {1, 2}
+        assert {row.pr.number for row in empty_selection.eligible} == {1, 2}
+
+
+class TestParseSelection:
+    def test_parses_repo_hash_number_tokens(self) -> None:
+        assert parse_selection(["acme/widgets#1", "acme/gadgets#42"]) == frozenset(
+            {("acme/widgets", 1), ("acme/gadgets", 42)}
+        )
+
+    def test_empty_iterable_yields_empty_selection(self) -> None:
+        assert parse_selection([]) == frozenset()
+
+    def test_malformed_token_raises(self) -> None:
+        with pytest.raises(ValueError, match="invalid selection token"):
+            parse_selection(["not-a-valid-token"])
+
 
 class TestExecuteBulk:
     async def test_executes_only_eligible_prs_and_skips_the_rest_with_reasons(self) -> None:
@@ -265,6 +328,57 @@ class TestExecuteBulk:
         assert len(outcome.skipped) == 1
         assert outcome.skipped[0].number == 1
         assert "not green" in outcome.skipped[0].reason  # type: ignore[operator]
+
+    async def test_execute_acts_only_on_selected_eligible_and_skips_selected_ineligible(
+        self,
+    ) -> None:
+        views = (
+            RepoView(
+                repo="acme/widgets",
+                rows=(
+                    make_row(number=1),
+                    make_row(number=2, verdict=CIVerdict.FAILING),
+                    make_row(number=3),
+                ),
+            ),
+        )
+        fleet_service = FakeFleetService(views)
+        actions_service = FakeActionsService()
+
+        outcome = await execute_bulk(
+            fleet_service,
+            actions_service,
+            action="approve",
+            selected=frozenset({("acme/widgets", 1), ("acme/widgets", 2)}),
+        )
+
+        # PR 3 was eligible but never selected -- untouched, not even skipped.
+        assert actions_service.calls == [("approve", "acme/widgets", 1)]
+        assert [r.number for r in outcome.acted_on] == [1]
+        assert len(outcome.skipped) == 1
+        assert outcome.skipped[0].number == 2
+
+    async def test_selected_pr_whose_ci_regressed_between_preview_and_confirm_is_demoted(
+        self,
+    ) -> None:
+        preview_views = (RepoView(repo="acme/widgets", rows=(make_row(number=1),)),)
+        confirm_views = (
+            RepoView(repo="acme/widgets", rows=(make_row(number=1, verdict=CIVerdict.FAILING),)),
+        )
+        fleet_service = FakeFleetService(preview_views, confirm_views)
+        actions_service = FakeActionsService()
+        selection = frozenset({("acme/widgets", 1)})
+
+        preview = await preview_bulk(fleet_service, action="merge", selected=selection)
+        assert len(preview.eligible) == 1  # green at preview time
+
+        outcome = await execute_bulk(
+            fleet_service, actions_service, action="merge", selected=selection
+        )
+
+        assert actions_service.calls == []  # never attempted -- demoted by the fresh re-check
+        assert len(outcome.skipped) == 1
+        assert outcome.skipped[0].number == 1
 
     async def test_widened_threshold_is_forwarded_to_execution(self) -> None:
         views = (
