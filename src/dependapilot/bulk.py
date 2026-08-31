@@ -20,6 +20,7 @@ they can never disagree:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Final
 
@@ -31,6 +32,25 @@ from dependapilot.scoring import SafetyBucket
 _BUCKET_RANK: Final = {SafetyBucket.UNSAFE: 0, SafetyBucket.CAUTION: 1, SafetyBucket.SAFE: 2}
 
 BULK_ACTIONS: Final = frozenset({"approve", "merge"})
+
+Selection = frozenset[tuple[str, int]]
+"""A set of `(repo, number)` pairs narrowing bulk scope to hand-picked PRs."""
+
+
+def parse_selection(tokens: Iterable[str]) -> Selection:
+    """Parse `"owner/repo#number"` checkbox values into `(repo, number)` pairs.
+
+    Raises `ValueError` on a malformed token rather than silently dropping it
+    -- a checkbox value that doesn't round-trip is a bug in the form, not
+    something to paper over.
+    """
+    parsed: set[tuple[str, int]] = set()
+    for token in tokens:
+        repo, sep, number_text = token.rpartition("#")
+        if not sep or not repo or not number_text.isdigit():
+            raise ValueError(f"invalid selection token: {token!r}")
+        parsed.add((repo, int(number_text)))
+    return frozenset(parsed)
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,12 +101,24 @@ class BulkPreview:
     skipped: tuple[EligibilityDecision, ...]
 
 
-async def _scoped_rows(fleet_service: FleetService, *, repo: str | None) -> list[PRRow]:
-    """Every PR row in scope: one repo's, or the whole fleet's."""
+async def _scoped_rows(
+    fleet_service: FleetService, *, repo: str | None, selected: Selection | None = None
+) -> list[PRRow]:
+    """Every PR row in scope: one repo's, or the whole fleet's -- further
+    narrowed to `selected` when given.
+
+    `selected` narrows the candidate set; it never adds to it. An empty or
+    absent selection is a no-op, preserving today's all-eligible semantics
+    exactly -- the UI only sends a non-empty selection when something is
+    actually checked.
+    """
     views = await fleet_service.get_fleet_view()
     if repo is not None:
         views = tuple(view for view in views if view.repo == repo)
-    return [row for view in views for row in view.rows]
+    rows = [row for view in views for row in view.rows]
+    if selected:
+        rows = [row for row in rows if (row.pr.repo, row.pr.number) in selected]
+    return rows
 
 
 async def preview_bulk(
@@ -95,12 +127,18 @@ async def preview_bulk(
     action: str,
     repo: str | None = None,
     min_bucket: SafetyBucket = SafetyBucket.SAFE,
+    selected: Selection | None = None,
 ) -> BulkPreview:
     """Split every in-scope PR into eligible / skipped-with-reason, for display
-    before anything is confirmed. `repo=None` means fleet-wide."""
+    before anything is confirmed. `repo=None` means fleet-wide.
+
+    `selected`, when given, narrows scope to exactly those PRs *before*
+    eligibility is decided -- a selected-but-ineligible PR still comes back
+    in `skipped` with its real reason, rather than being silently omitted.
+    """
     if action not in BULK_ACTIONS:
         raise ValueError(f"unknown bulk action {action!r}; expected one of {sorted(BULK_ACTIONS)}")
-    rows = await _scoped_rows(fleet_service, repo=repo)
+    rows = await _scoped_rows(fleet_service, repo=repo, selected=selected)
 
     eligible: list[PRRow] = []
     skipped: list[EligibilityDecision] = []
@@ -144,6 +182,7 @@ async def execute_bulk(
     action: str,
     repo: str | None = None,
     min_bucket: SafetyBucket = SafetyBucket.SAFE,
+    selected: Selection | None = None,
 ) -> BulkOutcome:
     """Re-check eligibility fresh, then act on every eligible PR sequentially.
 
@@ -152,9 +191,13 @@ async def execute_bulk(
     of the batch. Eligibility is re-derived here rather than trusted from a
     prior `preview_bulk` call -- CI may have changed since the dashboard
     rendered the preview, and a PR that regressed in the meantime is skipped
-    with a reason instead of being acted on.
+    with a reason instead of being acted on. `selected` narrows the same way
+    it does in `preview_bulk`; it never bypasses this re-check, so a selected
+    PR whose CI regressed since preview still comes back skipped.
     """
-    preview = await preview_bulk(fleet_service, action=action, repo=repo, min_bucket=min_bucket)
+    preview = await preview_bulk(
+        fleet_service, action=action, repo=repo, min_bucket=min_bucket, selected=selected
+    )
 
     results: list[ActionResult | EligibilityDecision] = list(preview.skipped)
     for row in preview.eligible:
