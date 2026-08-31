@@ -75,9 +75,17 @@ def create_app(
         service: FleetService | None = request.app.state.fleet_service
         if service is None:
             return templates.TemplateResponse(
-                request, "_fleet.html", {"repos": (), "unconfigured": True, "audit_badges": {}}
+                request,
+                "_fleet.html",
+                {
+                    "repos": (),
+                    "unconfigured": True,
+                    "audit_badges": {},
+                    "actions_configured": False,
+                },
             )
         audit: AuditService | None = request.app.state.audit_service
+        actions: ActionsService | None = request.app.state.actions_service
         repos, audit_badges = await asyncio.gather(
             service.get_fleet_view(force_refresh=refresh),
             _audit_badges(audit, refresh=refresh),
@@ -85,7 +93,12 @@ def create_app(
         return templates.TemplateResponse(
             request,
             "_fleet.html",
-            {"repos": repos, "unconfigured": False, "audit_badges": audit_badges},
+            {
+                "repos": repos,
+                "unconfigured": False,
+                "audit_badges": audit_badges,
+                "actions_configured": actions is not None,
+            },
         )
 
     def _render_audit_repo(request: Request, view: RepoAuditView) -> HTMLResponse:

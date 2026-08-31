@@ -317,3 +317,51 @@ class TestFleetAuditBadge:
         response = client.get("/fleet")
 
         assert "badge-audit-off" in response.text
+
+
+class FakeActionsService:
+    """Stands in for `ActionsService`: `/fleet` only checks its presence."""
+
+
+class TestFleetActionsBadge:
+    def test_repo_with_actions_disabled_shows_off_badge_with_remediation_tooltip(self) -> None:
+        views = (RepoView(repo="acme/widgets", actions_enabled=False, rows=()),)
+        client = TestClient(
+            create_app(
+                FakeFleetService(views),  # type: ignore[arg-type]
+                actions_service=FakeActionsService(),  # type: ignore[arg-type]
+            )
+        )
+
+        response = client.get("/fleet")
+
+        assert response.status_code == 200
+        assert "badge-actions-off" in response.text
+        assert "Actions: off" in response.text
+        assert "Enable actions: true for this repo in repos.yml" in response.text
+
+    def test_repo_with_actions_enabled_shows_no_actions_badge(self) -> None:
+        views = (RepoView(repo="acme/widgets", actions_enabled=True, rows=()),)
+        client = TestClient(
+            create_app(
+                FakeFleetService(views),  # type: ignore[arg-type]
+                actions_service=FakeActionsService(),  # type: ignore[arg-type]
+            )
+        )
+
+        response = client.get("/fleet")
+
+        assert response.status_code == 200
+        assert "badge-actions-off" not in response.text
+        assert "badge-actions-unconfigured" not in response.text
+
+    def test_actions_service_not_configured_renders_a_distinct_variant(self) -> None:
+        views = (RepoView(repo="acme/widgets", actions_enabled=False, rows=()),)
+        client = TestClient(create_app(FakeFleetService(views)))  # type: ignore[arg-type]
+
+        response = client.get("/fleet")
+
+        assert response.status_code == 200
+        assert "badge-actions-unconfigured" in response.text
+        assert "badge-actions-off" not in response.text
+        assert "Actions service is not configured" in response.text

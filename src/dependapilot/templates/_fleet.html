@@ -29,6 +29,15 @@
       {% set audit_off_reason = "Audit service is not configured" if repo.audit_enabled else "Enable audit: true for this repo in repos.yml" %}
       <span class="badge badge-audit-off" title="{{ audit_off_reason }}">Audit: off</span>
       {% endif %}
+      {% if not repo.actions_enabled %}
+      {% set actions_off_reason = "Enable actions: true for this repo in repos.yml" if actions_configured else "Actions service is not configured" %}
+      <span
+        class="badge badge-actions-{{ 'off' if actions_configured else 'unconfigured' }}"
+        title="{{ actions_off_reason }}"
+      >
+        Actions: off
+      </span>
+      {% endif %}
       <span class="pr-count">{{ repo.rows|length }} open PR{{ "" if repo.rows|length == 1 else "s" }}</span>
       {% if repo.actions_enabled and repo.rows %}
       <span class="bulk-toolbar" data-repo="{{ repo.repo }}">
