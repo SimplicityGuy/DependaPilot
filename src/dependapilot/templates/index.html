@@ -4,97 +4,82 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>DependaPilot</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/static/style.css">
     <script src="/static/vendor/htmx.min.js"></script>
-    <style>
-      body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
-      h1 { margin-bottom: 0.25rem; }
-      .subtitle { color: #666; margin-top: 0; }
-      #fleet-toolbar { margin: 1.5rem 0; display: flex; align-items: center; gap: 0.75rem; }
-      .htmx-indicator { opacity: 0; transition: opacity 200ms ease; }
-      .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
-      .repo { border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
-      .repo-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-      .repo-header h2 { margin: 0; font-size: 1.1rem; }
-      .pr-count { color: #666; font-size: 0.9rem; }
-      table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
-      th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-      .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
-      .badge-audit-ok { background: #d7f3df; color: #14602c; }
-      .badge-audit-findings { background: #fde3e3; color: #9a1f1f; }
-      .badge-audit-unknown { background: #fff3cd; color: #8a6b00; }
-      .badge-audit-off { background: #eee; color: #666; }
-      .badge-audit-error { background: #fde3e3; color: #9a1f1f; }
-      .badge-actions-off, .badge-actions-unconfigured { background: #eee; color: #666; }
-      a.badge { text-decoration: none; }
-      .badge-semver-patch { background: #d7f3df; color: #14602c; }
-      .badge-semver-minor { background: #e6f0ff; color: #1a4fa0; }
-      .badge-semver-major, .badge-semver-unknown { background: #fde3e3; color: #9a1f1f; }
-      .badge-dependency-type { background: #f0eefc; color: #4a3a9c; }
-      .badge-ci-green { background: #d7f3df; color: #14602c; }
-      .badge-ci-pending { background: #fff3cd; color: #8a6b00; }
-      .badge-ci-failing { background: #fde3e3; color: #9a1f1f; }
-      .badge-ci-no_ci { background: #eee; color: #666; }
-      .badge-bucket-safe { background: #d7f3df; color: #14602c; }
-      .badge-bucket-caution { background: #fff3cd; color: #8a6b00; }
-      .badge-bucket-unsafe { background: #fde3e3; color: #9a1f1f; }
-      .stale-flag { color: #9a1f1f; font-weight: 600; font-size: 0.85rem; }
-      .breakdown { margin: 0.4rem 0 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: #444; }
-      .repo-error, .row-error, .fleet-error { color: #9a1f1f; background: #fde3e3; padding: 0.5rem 0.75rem; border-radius: 6px; }
-      .repo-empty, .fleet-empty { color: #666; font-style: italic; }
-      .action-form { display: inline-block; margin: 0 0.25rem 0.25rem 0; }
-      .action-form button { font-size: 0.82rem; padding: 0.15rem 0.5rem; }
-      .actions-disabled { color: #999; }
-      .action-outcome { margin: 0 0 0.3rem 0; font-size: 0.82rem; }
-      .action-ok { color: #14602c; }
-      .action-fail { color: #9a1f1f; }
-      .action-skip { color: #8a6b00; }
-      .bulk-toolbar { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.5rem; font-size: 0.85rem; }
-      .bulk-caution { color: #666; }
-      #bulk-panel:not(:empty) { border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0; background: #fafafa; }
-      .bulk-eligible, .bulk-skipped ul { margin: 0.4rem 0; padding-left: 1.2rem; font-size: 0.85rem; }
-    </style>
   </head>
   <body>
-    <h1>DependaPilot</h1>
-    <p class="subtitle">Automated dependency update orchestration.</p>
-    <p><a href="/audit">Audit view &rarr;</a></p>
-
-    <div id="fleet-toolbar">
-      <button
-        hx-get="/fleet?refresh=true"
-        hx-target="#fleet"
-        hx-swap="outerHTML"
-        hx-indicator="#fleet-loading"
-      >
+    <div class="topbar">
+      <div class="brand">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+          <path d="M1.8 8.6l12.4-6-4.6 12-2.3-4.4L1.8 8.6z" fill="#2DD4BF"></path>
+          <path d="M7.3 10.2l6.9-7.6" stroke="#0B1015" stroke-width="0.9"></path>
+        </svg>
+        <span class="wordmark">DependaPilot</span>
+      </div>
+      <nav class="navtabs">
+        <span class="navtab navtab-active">Fleet</span>
+        <a href="/audit" class="navtab">Audit</a>
+      </nav>
+      <div class="topbar-spacer"></div>
+      <span class="mono topbar-synced">synced just now</span>
+      <button class="btn" type="button" title="Refresh the fleet view below">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13.2 8A5.2 5.2 0 1 1 11.6 4.2"></path>
+          <path d="M13.4 1.8v3h-3"></path>
+        </svg>
         Refresh
       </button>
-      <span id="fleet-loading" class="htmx-indicator">Refreshing…</span>
-
-      <span class="bulk-toolbar" data-repo="">
-        <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
-        <button
-          hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "approve", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(document.querySelectorAll("#fleet .bulk-select-row:checked")).map(cb => cb.value)}'
-          hx-target="#bulk-panel"
-          hx-swap="outerHTML"
-        >
-          Approve all eligible (fleet)
-        </button>
-        <button
-          hx-post="/fleet/bulk/preview"
-          hx-vals='js:{"action": "merge", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(document.querySelectorAll("#fleet .bulk-select-row:checked")).map(cb => cb.value)}'
-          hx-target="#bulk-panel"
-          hx-swap="outerHTML"
-        >
-          Merge all eligible (fleet)
-        </button>
-      </span>
     </div>
 
-    <div id="bulk-panel"></div>
+    <main class="page">
+      <p class="subtitle">Automated dependency update orchestration.</p>
 
-    <div id="fleet" hx-get="/fleet" hx-trigger="load" hx-swap="outerHTML">
-      <p class="fleet-empty">Loading fleet…</p>
-    </div>
+      <div id="fleet-toolbar">
+        <button
+          hx-get="/fleet?refresh=true"
+          hx-target="#fleet"
+          hx-swap="outerHTML"
+          hx-indicator="#fleet-loading"
+          class="btn"
+          type="button"
+        >
+          Refresh
+        </button>
+        <span id="fleet-loading" class="htmx-indicator mono">Refreshing…</span>
+
+        <span class="bulk-toolbar" data-repo="">
+          <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
+          <button
+            hx-post="/fleet/bulk/preview"
+            hx-vals='js:{"action": "approve", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(document.querySelectorAll("#fleet .bulk-select-row:checked")).map(cb => cb.value)}'
+            hx-target="#bulk-panel"
+            hx-swap="outerHTML"
+            class="btn"
+          >
+            Approve all eligible (fleet)
+          </button>
+          <button
+            hx-post="/fleet/bulk/preview"
+            hx-vals='js:{"action": "merge", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(document.querySelectorAll("#fleet .bulk-select-row:checked")).map(cb => cb.value)}'
+            hx-target="#bulk-panel"
+            hx-swap="outerHTML"
+            class="btn btn-primary"
+          >
+            Merge all eligible (fleet)
+          </button>
+        </span>
+      </div>
+
+      <div id="bulk-panel"></div>
+
+      <div id="fleet" hx-get="/fleet" hx-trigger="load" hx-swap="outerHTML">
+        <p class="fleet-empty">Loading fleet…</p>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span class="mono">every call goes through the gh CLI — your gh login is the only credential · merge needs green CI, always</span>
+    </footer>
   </body>
 </html>
