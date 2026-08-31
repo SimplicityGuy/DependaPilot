@@ -1,9 +1,25 @@
 {% set anchor_id = "audit-" ~ view.repo|replace("/", "-") %}
 {% set repo_parts = view.repo.split("/", 1) %}
-<section class="repo audit-repo" id="{{ anchor_id }}">
-  <div class="repo-header">
-    <h2>{{ view.repo }}</h2>
+{% set finding_count = view.findings|length %}
+{% set severity_chip = {"high": "chip-unsafe", "medium": "chip-caution", "low": "chip-info", "info": "chip-neutral"} %}
+<section class="card audit-repo" id="{{ anchor_id }}">
+  <div class="card-header">
+    <span class="reposlug mono"><span class="reposlug-owner">{{ repo_parts[0] }}/</span>{{ repo_parts[1] }}</span>
+    {% if view.error %}
+    <span class="chip chip-neutral">audit unknown</span>
+    {% elif not view.findings %}
+    <span class="chip chip-safe">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.8l4.8 1.7v3.7c0 3-2 5.5-4.8 6.7-2.8-1.2-4.8-3.7-4.8-6.7V3.5L8 1.8z"></path><path d="M5.7 8.1l1.6 1.6 3-3.2"></path></svg>
+      compliant
+    </span>
+    <span class="chip-note">No findings — configuration is compliant.</span>
+    {% else %}
+    <span class="chip chip-caution">{{ finding_count }} finding{{ "" if finding_count == 1 else "s" }}</span>
+    {% endif %}
+    <div class="spacer"></div>
     <button
+      class="btn btn-row"
+      type="button"
       hx-get="/audit/{{ repo_parts[0] }}/{{ repo_parts[1] }}"
       hx-target="#{{ anchor_id }}"
       hx-swap="outerHTML"
@@ -13,40 +29,51 @@
   </div>
 
   {% if view.error %}
-  <p class="repo-error">Could not audit this repo: {{ view.error }}</p>
+  <div class="error-banner">
+    <svg class="error-banner-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2L14.5 13.2H1.5L8 2z" stroke-linejoin="round"></path><path d="M8 6.5v3"></path><path d="M8 11.6v0.1"></path></svg>
+    <div>
+      <div class="error-banner-summary">Could not audit this repo</div>
+      <div class="error-banner-detail">{{ view.error }}</div>
+    </div>
+  </div>
   {% else %}
 
-  {% if not view.findings %}
-  <p class="audit-ok">No findings — configuration is compliant.</p>
-  {% else %}
-  <ul class="audit-findings">
+  {% if view.findings %}
+  <div class="findinglist">
     {% for finding in view.findings %}
-    <li class="finding finding-{{ finding.severity.value }}">
-      <span class="badge badge-severity-{{ finding.severity.value }}">{{ finding.severity.value }}</span>
-      <code>{{ finding.check.value }}</code>
-      {{ finding.message }}
-      {% if finding.check.value in SETTINGS_CHECKS %}
-      <p class="remediation-hint">{{ SETTINGS_REMEDIATION_HINT }}</p>
-      {% endif %}
-    </li>
+    <div class="findingrow">
+      <span class="chip {{ severity_chip[finding.severity.value] }}">{{ finding.severity.value|upper }}</span>
+      <div>
+        <div class="findingrow-text"><span class="code-chip">{{ finding.check.value }}</span>&nbsp;{{ finding.message }}</div>
+        {% if finding.check.value in SETTINGS_CHECKS %}
+        <p class="findingrow-hint">{{ SETTINGS_REMEDIATION_HINT }}</p>
+        {% endif %}
+      </div>
+    </div>
     {% endfor %}
-  </ul>
+  </div>
   {% endif %}
 
   <details class="audit-diff" open>
-    <summary>Config diff (current &rarr; suggested)</summary>
+    <summary class="th">Config diff · current → suggested</summary>
     {% if view.diff %}
-    <pre class="diff">{% for line in view.diff -%}
-<span class="diff-line{{ ' diff-add' if line.startswith('+') and not line.startswith('+++') else ' diff-del' if line.startswith('-') and not line.startswith('---') else ' diff-hunk' if line.startswith('@@') else '' }}">{{ line }}</span>
-{% endfor -%}</pre>
+    <div class="diffblock">{% for line in view.diff -%}
+<span class="diffline{{ ' diffline-add' if line.startswith('+') and not line.startswith('+++') else ' diffline-del' if line.startswith('-') and not line.startswith('---') else ' diffline-hunk' if line.startswith('@@') else '' }}">{{ line }}</span>
+{% endfor -%}</div>
     {% else %}
-    <p class="audit-ok">Current config already matches the suggested configuration.</p>
+    <p class="emptystate">
+      <svg class="emptystate-safe" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"></path></svg>
+      Current config already matches the suggested configuration.
+    </p>
     {% endif %}
   </details>
 
-  <div class="fix-pr">
+  <div class="fixprrow">
     {% if view.existing_fix_pr_url %}
-    <span>Fix PR: <a href="{{ view.existing_fix_pr_url }}" target="_blank" rel="noopener">{{ view.existing_fix_pr_url }}</a></span>
+    <span class="fixprrow-existing">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5l3-3"></path><path d="M7.5 4.5l1-1a2.4 2.4 0 0 1 3.4 3.4l-1 1"></path><path d="M8.5 11.5l-1 1a2.4 2.4 0 0 1-3.4-3.4l1-1"></path></svg>
+      Fix PR already open: <a class="mono" href="{{ view.existing_fix_pr_url }}" target="_blank" rel="noopener">{{ view.existing_fix_pr_url }}</a>
+    </span>
     {% endif %}
     <form
       hx-post="/audit/{{ repo_parts[0] }}/{{ repo_parts[1] }}/fix-pr"
@@ -54,10 +81,10 @@
       hx-swap="outerHTML"
       hx-confirm="{{ ('Update the existing fix PR for ' ~ view.repo ~ '?') if view.existing_fix_pr_url else ('Open a fix PR for ' ~ view.repo ~ '?') }}"
     >
-      <button type="submit">{{ "Update fix PR" if view.existing_fix_pr_url else "Open fix PR" }}</button>
+      <button type="submit" class="btn{{ '' if view.existing_fix_pr_url else ' btn-primary' }}">{{ "Update fix PR" if view.existing_fix_pr_url else "Open fix PR" }}</button>
     </form>
     {% if view.fix_pr_error %}
-    <span class="repo-error">Fix PR failed: {{ view.fix_pr_error }}</span>
+    <span class="fixprrow-error">Fix PR failed: {{ view.fix_pr_error }}</span>
     {% endif %}
   </div>
   {% endif %}
