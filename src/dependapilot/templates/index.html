@@ -49,7 +49,11 @@
         <span id="fleet-loading" class="htmx-indicator mono">Refreshing…</span>
 
         <span class="bulk-toolbar" data-repo="">
-          <label class="bulk-caution"><input type="checkbox" class="bulk-caution-toggle" /> include caution</label>
+          <label class="toggle-label bulk-caution">
+            <input type="checkbox" class="bulk-caution-toggle toggle-input" />
+            <span class="toggle"><span class="toggle-knob"></span></span>
+            include caution
+          </label>
           <button
             hx-post="/fleet/bulk/preview"
             hx-vals='js:{"action": "approve", "min_bucket": event.target.closest(".bulk-toolbar").querySelector(".bulk-caution-toggle").checked ? "caution" : "safe", "selected": Array.from(document.querySelectorAll("#fleet .bulk-select-row:checked")).map(cb => cb.value)}'

@@ -420,6 +420,13 @@ details[open] .chevron { transform: rotate(180deg); }
 /* ── Toggle ───────────────────────────────────────────────────────────── */
 
 .toggle-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
+/* The real checkbox stays in the DOM (and keeps its `.bulk-caution-toggle`
+   hook for the existing hx-vals JS) but is visually replaced by the `.toggle`
+   track + knob rendered right after it; `:checked` drives the on/off look. */
+.toggle-input {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
 .toggle {
   display: inline-block; width: 26px; height: 15px; border-radius: 999px;
   background: var(--border); border: 1px solid var(--border-strong); position: relative;
@@ -428,8 +435,8 @@ details[open] .chevron { transform: rotate(180deg); }
   position: absolute; top: 1px; left: 1px; width: 11px; height: 11px;
   border-radius: 999px; background: var(--ink-muted); transition: left 120ms ease, background 120ms ease;
 }
-.toggle.is-on { background: var(--accent-bg); }
-.toggle.is-on .toggle-knob { left: 12px; background: var(--accent); }
+.toggle-input:checked ~ .toggle { background: var(--accent-bg); }
+.toggle-input:checked ~ .toggle .toggle-knob { left: 12px; background: var(--accent); }
 
 /* ── Shared toolbar + loading-placeholder styles ─────────────────────────
  * A handful of small pre-redesign rules survive because real templates
