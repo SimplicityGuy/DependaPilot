@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from dependapilot.actions import ActionsService
+from dependapilot.app import create_live_app
 from dependapilot.audit_service import AuditService
 from dependapilot.cli import _build_live_app
 from dependapilot.fleet import FleetService
@@ -147,3 +148,43 @@ async def test_serve_wires_real_services_honoring_config_flags(
             assert "audit off" in response.text
     finally:
         await client.aclose()
+
+
+def test_reload_factory_wires_live_services_from_env_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`create_live_app` (the `serve --reload` factory) must serve the fleet
+    from `repos.yml`, not the unwired scaffold app."""
+    config_path = write_repos_yml(
+        tmp_path,
+        """
+        repos:
+          - repo: acme/one
+            actions: true
+        """,
+    )
+    monkeypatch.setenv("DEPENDAPILOT_CONFIG", str(config_path))
+    patch_gh_cli_token(monkeypatch)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/user":
+            return httpx.Response(200, json={"login": "test-user"})
+        if request.url.path == "/search/issues":
+            return httpx.Response(200, json={"items": []})
+        return httpx.Response(404, json={"message": "not found"})
+
+    patch_github_transport(monkeypatch, handler)
+
+    app = create_live_app()
+    # Services are wired by the lifespan, which TestClient runs on entry.
+    assert app.state.fleet_service is None
+    with TestClient(app) as test_client:
+        assert isinstance(app.state.fleet_service, FleetService)
+        assert isinstance(app.state.actions_service, ActionsService)
+        assert isinstance(app.state.audit_service, AuditService)
+        response = test_client.get("/fleet")
+        assert response.status_code == 200
+        assert "not configured" not in response.text
+        # The mocked search returns no PRs, so the live (not scaffold)
+        # empty state renders.
+        assert "all caught up" in response.text

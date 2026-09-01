@@ -1,6 +1,9 @@
 """FastAPI application factory for DependaPilot."""
 
 import asyncio
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
@@ -9,6 +12,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
+from starlette.types import Lifespan
 
 from dependapilot.actions import ActionOutcome, ActionResult, ActionsService
 from dependapilot.audit_service import (
@@ -21,7 +25,7 @@ from dependapilot.audit_service import (
 )
 from dependapilot.bulk import execute_bulk, parse_selection, preview_bulk
 from dependapilot.ci import CIVerdictService
-from dependapilot.config import FleetConfig
+from dependapilot.config import FleetConfig, load_fleet_config
 from dependapilot.discovery import DiscoveryService
 from dependapilot.fleet import FleetService, compute_fleet_totals
 from dependapilot.github import GitHubClient
@@ -41,6 +45,7 @@ def create_app(
     fleet_service: FleetService | None = None,
     actions_service: ActionsService | None = None,
     audit_service: AuditService | None = None,
+    lifespan: Lifespan[FastAPI] | None = None,
 ) -> FastAPI:
     """Build and configure the DependaPilot FastAPI application.
 
@@ -55,8 +60,12 @@ def create_app(
 
     `audit_service` follows the same contract for the `/audit` page and the
     fleet-view audit badge.
+
+    `lifespan` lets a caller defer service wiring to ASGI startup (see
+    `create_live_app`); every route reads its service off `app.state` per
+    request, so state populated by a lifespan is picked up transparently.
     """
-    app = FastAPI(title="DependaPilot")
+    app = FastAPI(title="DependaPilot", lifespan=lifespan)
     app.state.fleet_service = fleet_service
     app.state.actions_service = actions_service
     app.state.audit_service = audit_service
@@ -288,13 +297,11 @@ def _unconfigured_result(owner: str, repo: str, number: int, action: str) -> Act
     )
 
 
-def build_app(fleet: FleetConfig, client: GitHubClient) -> FastAPI:
-    """Wire a live dashboard from an already-authenticated `GitHubClient`.
-
-    `cli.py serve`'s entry point: builds every service off the one client and
-    `FleetConfig`, keyed by each repo's `audit`/`actions` flags, and hands them
-    to `create_app` -- the counterpart to the unwired scaffold `app` below.
-    """
+def _build_services(
+    fleet: FleetConfig, client: GitHubClient
+) -> tuple[FleetService, ActionsService, AuditService]:
+    """Build every service off the one client and `FleetConfig`, keyed by each
+    repo's `audit`/`actions` flags."""
     discovery = DiscoveryService(client, fleet)
     ci_service = CIVerdictService(client)
     audit_enabled_repos = frozenset(entry.repo for entry in fleet.repos if entry.audit)
@@ -308,7 +315,43 @@ def build_app(fleet: FleetConfig, client: GitHubClient) -> FastAPI:
     )
     actions_service = ActionsService(client, fleet, ci_service)
     audit_service = AuditService(client, fleet, audit_enabled_repos=audit_enabled_repos)
-    return create_app(fleet_service, actions_service, audit_service)
+    return fleet_service, actions_service, audit_service
+
+
+def build_app(fleet: FleetConfig, client: GitHubClient) -> FastAPI:
+    """Wire a live dashboard from an already-authenticated `GitHubClient`.
+
+    `cli.py serve`'s non-reload entry point -- the counterpart to the
+    reload-mode factory `create_live_app` below.
+    """
+    return create_app(*_build_services(fleet, client))
+
+
+def create_live_app() -> FastAPI:
+    """uvicorn factory for `serve --reload`: a live app wired at ASGI startup.
+
+    Reload mode re-imports the app by string in a fresh subprocess on every
+    change, so config loading and `gh` auth can't happen in `cli.py` -- they
+    run in the lifespan instead, re-reading `repos.yml` (path via the
+    `DEPENDAPILOT_CONFIG` env var) on every reload. A bad config or failed
+    auth fails startup with uvicorn's traceback; the reloader stays up and
+    retries on the next file save.
+    """
+    config_path = os.environ.get("DEPENDAPILOT_CONFIG", "repos.yml")
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        fleet = load_fleet_config(config_path)
+        client = await GitHubClient.create()
+        app.state.fleet_service, app.state.actions_service, app.state.audit_service = (
+            _build_services(fleet, client)
+        )
+        try:
+            yield
+        finally:
+            await client.aclose()
+
+    return create_app(lifespan=lifespan)
 
 
 app = create_app()

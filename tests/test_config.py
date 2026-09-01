@@ -263,8 +263,8 @@ class TestSampleFile:
         assert config.defaults.merge_method is MergeMethod.MERGE
         assert config.defaults.cooldown_floor_days == 3
 
-        by_repo = {entry.repo: entry for entry in config.repos}
-        assert "SimplicityGuy/DependaPilot" in by_repo
-        assert by_repo["SimplicityGuy/vinyldigger"].merge_method is MergeMethod.SQUASH
-        assert by_repo["SimplicityGuy/cronduit"].audit is True
-        assert by_repo["SimplicityGuy/tracktion"].actions is True
+        # Fleet membership changes routinely, so don't pin the roster here --
+        # loading already proves every entry validates against the schema.
+        # This repo is the one entry that must always be present.
+        assert config.repos
+        assert "SimplicityGuy/DependaPilot" in {entry.repo for entry in config.repos}

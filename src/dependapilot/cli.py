@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 
 import click
 import uvicorn
@@ -37,9 +38,20 @@ def serve(config_path: str, host: str, port: int, reload: bool) -> None:
     if reload:
         # uvicorn's auto-reload re-imports the app by string in a fresh
         # subprocess on every change, so it can't be handed an already-built
-        # app carrying a live GitHubClient -- fall back to the unwired
-        # scaffold app for this dev-only mode.
-        uvicorn.run("dependapilot.app:app", host=host, port=port, reload=True)
+        # app carrying a live GitHubClient -- `create_live_app` re-wires the
+        # config and client inside its ASGI lifespan on every reload, with
+        # the config path handed across the subprocess boundary via the
+        # environment. Watching the config file itself means an edit to
+        # `repos.yml` shows up on save, no manual restart needed.
+        os.environ["DEPENDAPILOT_CONFIG"] = config_path
+        uvicorn.run(
+            "dependapilot.app:create_live_app",
+            factory=True,
+            host=host,
+            port=port,
+            reload=True,
+            reload_includes=[config_path],
+        )
         return
     asyncio.run(_serve(config_path, host, port))
 
