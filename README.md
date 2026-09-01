@@ -44,24 +44,30 @@ git clone https://github.com/SimplicityGuy/DependaPilot.git
 cd DependaPilot
 just install          # uv sync --all-extras --dev
 # edit repos.yml to list the repos you want to manage
-uv run dependapilot serve
+just serve            # uv run dependapilot serve --reload
 ```
 
 Then open `http://127.0.0.1:8000` — `/fleet` is the dashboard, `/audit` is the audit page.
 `GET /healthz` returns `{"status": "ok"}` for a liveness check.
 
-`just serve` runs the same command in dev-reload mode (see the `--reload` caveat under
-[Known limitations](#known-limitations)). Run `just --list` to see every available recipe,
-grouped by purpose (`setup`, `quality`, `test`, `server`, `ci`):
+`just serve` runs with auto-reload: the server watches both the source tree and
+`repos.yml` itself, so a config edit shows up on save — no manual restart. Each reload
+re-reads the config and re-authenticates via `gh` inside the app's startup lifespan
+(`create_live_app` in `src/dependapilot/app.py`); a bad `repos.yml` fails that startup
+with a clear error, and the watcher simply retries on your next save. Use `just
+serve-prod [host] [port]` to serve without reload on an explicit bind address, or `uv run
+dependapilot serve --config <path>` to point at a different fleet file.
+
+Run `just --list` to see every available recipe, grouped by purpose (`setup`, `quality`,
+`test`, `server`, `ci`):
 
 ```sh
 just --list
 ```
 
 Highlights: `just install` (sync the dev environment), `just check` (the full validation
-suite — format check, lint, type check, tests — the same thing CI runs), `just test-only
-<pattern>` (run tests matching a keyword), `just serve-prod [host] [port]` (serve without
-reload, on an explicit bind address).
+suite — format check, lint, type check, tests — the same thing CI runs), and `just
+test-only <pattern>` (run tests matching a keyword).
 
 ## `repos.yml` reference
 
@@ -77,14 +83,14 @@ defaults:
   cooldown_floor_days: 3
 
 repos:
-  - repo: SimplicityGuy/DependaPilot
+  - repo: SimplicityGuy/cronduit
     # no overrides: merge_method inherits defaults.merge_method,
     # audit defaults to true, actions defaults to false
 
-  - repo: SimplicityGuy/vinyldigger
+  - repo: SimplicityGuy/discogsography
     merge_method: squash        # overrides the fleet default for this repo only
 
-  - repo: SimplicityGuy/tracktion
+  - repo: SimplicityGuy/DependaPilot
     actions: true                # opt in to dashboard writes for this repo
 ```
 
@@ -201,7 +207,7 @@ For every finding a config-file rewrite *can* fix, the audit page can generate a
 ## Actions
 
 Actions are gated per repo by `repos.yml`'s `actions` key (off by default — see
-[the reference above](#reposyml-per-repo)) and, for merge, by a CI check re-run at the
+[the reference above](#repos-per-repo)) and, for merge, by a CI check re-run at the
 moment of the click, not whatever the dashboard rendered a page load ago.
 
 ### Single-PR actions
@@ -253,13 +259,6 @@ trusting its score.
 
 ## Known limitations
 
-- **`--reload` serves an unwired scaffold, not the live fleet.** `just serve` (and
-  `dependapilot serve --reload`) run uvicorn's file-watching auto-reload, which re-imports
-  the ASGI app by string in a fresh subprocess on every change — that's incompatible with
-  handing it an already-built app carrying a live, authenticated `GitHubClient`. In
-  `--reload` mode you get `dependapilot.app:app`, the plain scaffold (`/healthz` and a
-  static `/` shell, `/fleet` and `/audit` rendering "not configured"). For a fully wired
-  dashboard, run without `--reload`: `uv run dependapilot serve` or `just serve-prod`.
 - **Version numbers are parsed from the PR title, not from any structured field.**
   Dependabot's commit trailer carries dependency name, dependency type, and semver bump
   size, but not the actual old/new version strings — those are extracted with a regex
@@ -280,3 +279,14 @@ just ci           # fresh `uv sync` + the full check suite, exactly as CI does i
 ```
 
 See `just --list` for the complete, grouped set of recipes.
+
+The web UI follows the ["Mission Control" design language](docs/design-language.md) —
+tokens, component recipes, and reference mockups for the fleet dashboard, audit view, and
+bulk-action panel live under [`docs/`](docs/).
+
+This repo develops via AGF (Agentic Git Flow) on [`bh`](AGENTS.md): work is tracked as
+beads and driven through `bh work`, not raw `git`.
+
+---
+
+<p align="center">Made with ❤️ in the Pacific Northwest</p>
