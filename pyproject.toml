@@ -6,14 +6,14 @@ readme = "README.md"
 requires-python = ">=3.13"
 license = { file = "LICENSE" }
 dependencies = [
-    "click>=8.1",
-    "fastapi>=0.115",
-    "jinja2>=3.1",
-    "jsonschema>=4.23",
-    "pydantic>=2.9",
-    "python-multipart>=0.0.12",
-    "pyyaml>=6.0",
-    "uvicorn[standard]>=0.32",
+    "click>=8.5.0",
+    "fastapi>=0.143.3",
+    "jinja2>=3.1.6",
+    "jsonschema>=4.26.0",
+    "pydantic>=2.14.1",
+    "python-multipart>=0.0.32",
+    "pyyaml>=6.0.3",
+    "uvicorn[standard]>=0.52.4",
 ]
 
 [project.scripts]
@@ -28,13 +28,13 @@ packages = ["src/dependapilot"]
 
 [dependency-groups]
 dev = [
-    "httpx>=0.27",
-    "mypy>=1.13",
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "ruff>=0.8",
-    "types-jsonschema>=4.26.0.20260518",
-    "types-pyyaml>=6.0",
+    "httpx>=0.28.1",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.17.1",
+    "types-jsonschema>=4.26.0.20261006",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [tool.ruff]
